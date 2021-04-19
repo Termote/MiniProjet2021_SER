@@ -23,5 +23,5 @@ void SendUint8ToComputer(uint8_t* data, uint16_t size);
 #ifdef __cplusplus
 }
 #endif
-
+//Ceci est un message de test
 #endif
