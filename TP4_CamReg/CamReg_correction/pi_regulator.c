@@ -13,11 +13,7 @@
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
 
-<<<<<<< HEAD
 	float error = 10;
-=======
-	float error = 20;
->>>>>>> branch 'main' of https://github.com/MindTheGapM8/MiniProjet2021_SER.git
 	float speed = 0;
 
 	static float sum_error = 0;
