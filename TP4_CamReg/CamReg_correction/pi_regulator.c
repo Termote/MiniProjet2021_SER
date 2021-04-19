@@ -13,7 +13,7 @@
 //simple PI regulator implementation
 int16_t pi_regulator(float distance, float goal){
 
-	float error = 0;
+	float error = 20;
 	float speed = 0;
 
 	static float sum_error = 0;
