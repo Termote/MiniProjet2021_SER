@@ -17,6 +17,7 @@
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
+
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
@@ -37,9 +38,15 @@ static void serial_start(void)
 int main(void)
 {
 
+
+
+
+
     halInit();
     chSysInit();
     mpu_init();
+
+
 
     //starts the serial communication
     serial_start();
@@ -58,6 +65,11 @@ int main(void)
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
+
+    	uint16_t test = 56;
+    	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"Test de fet ", strlen("Test de fet "));
+    	chprintf((BaseSequentialStream*)&SD3, "This is some message with a value: %d\r\n", test);
+
         chThdSleepMilliseconds(1000);
     }
 }
