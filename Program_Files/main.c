@@ -17,7 +17,6 @@
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
-<<<<<<< HEAD
 
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
@@ -113,7 +112,6 @@ int main(void)
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
->>>>>>> branch 'main' of https://github.com/MindTheGapM8/MiniProjet2021_SER.git
         chThdSleepMilliseconds(1000);
     }
 }
