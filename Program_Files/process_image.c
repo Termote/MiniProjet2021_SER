@@ -157,7 +157,11 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		if(send_to_computer){
 			//sends to the computer the image
+<<<<<<< HEAD
 			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+=======
+			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+>>>>>>> branch 'main' of https://github.com/MindTheGapM8/MiniProjet2021_SER.git
 		}
 		//invert the bool
 		send_to_computer = !send_to_computer;
