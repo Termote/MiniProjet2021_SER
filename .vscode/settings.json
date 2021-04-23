@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "usbcfg.h": "c",
+        "motors.h": "c"
+    }
+}

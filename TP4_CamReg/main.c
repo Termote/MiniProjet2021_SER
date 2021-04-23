@@ -17,60 +17,6 @@
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
-
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
-}
-
-static void serial_start(void)
-{
-	static SerialConfig ser_cfg = {
-	    115200,
-	    0,
-	    0,
-	    0,
-	};
-
-	sdStart(&SD3, &ser_cfg); // UART3.
-}
-
-int main(void)
-{
-
-
-
-
-
-    halInit();
-    chSysInit();
-    mpu_init();
-
-
-
-    //starts the serial communication
-    serial_start();
-    //start the USB communication
-    usb_start();
-    //starts the camera
-    dcmi_start();
-	po8030_start();
-	//inits the motors
-	motors_init();
-
-	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
-	process_image_start();
-
-    /* Infinite loop. */
-    while (1) {
-    	//waits 1 second
-
-    	uint16_t test = 56;
-    	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"Test de fet ", strlen("Test de fet "));
-    	chprintf((BaseSequentialStream*)&SD3, "This is some message with a value: %d\r\n", test);
-
-=======
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
