@@ -58,6 +58,7 @@ int main(void)
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
+		chprintf((BaseSequentialStream*)&SD6, "This is some message with a value: %d\r\n", 42);
         chThdSleepMilliseconds(1000);
     }
 }
