@@ -5,6 +5,7 @@
 typedef unsigned char   uint8_t;
 typedef short  int16_t;
 typedef unsigned   uint32_t;
+typedef int  int32_t;
 
 #define NSTEP_ONE_TURN      1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER     13 // [cm]
@@ -44,9 +45,9 @@ int main() {
 struct movement{
 
     enum {
-        ON_RIGHT_TRACK = 0,
-        FIRST_PHASE = 1,
         SECOND_PHASE = -1,
+        ON_RIGHT_TRACK = 0,
+        FIRST_PHASE = 1
     } obstacle_avoid_state;
 
     enum {
@@ -57,6 +58,7 @@ struct movement{
 
     enum {
         LEFT=-1,
+        CENTER=0,
         RIGHT=1
     } turn_direction;
 
@@ -78,16 +80,17 @@ void movement_init(){
 
 void analyse_angle(int* angle){
 
-    if(angle > 180) angle = 180 - *angle;
+    printf("Analysing given angle %d", *angle);
+    if(*angle > 180) *angle = *angle - 360;
+    printf("Angle changed to : %d", *angle);
     if(angle <= 0) movement_info.turn_direction = LEFT;
     else movement_info.turn_direction = RIGHT;
 };
 
+uint8_t tmp; //à deleter lors de la création de la fonction
 uint8_t object_detection(){
 
-    uint8_t tmp;
-
-    printf("Select object detected(1) or not (0) :");
+    printf("Select object detected(1) or not (0) : ");
     scanf("%d", &tmp);
 
     return tmp;
@@ -101,44 +104,43 @@ void avoid_obstacle(){
     set_closer_side();
     movement_info.obstacle_avoid_state = FIRST_PHASE;
 
-    while (movement_info.obstacle_avoid_state =! ON_RIGHT_TRACK)
+    while (movement_info.obstacle_avoid_state)
     {
         turn_to(movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
         left_motor_set_pos(0);
-        printf("movement state : %d \n", movement_info.obstacle_avoid_state);
 
         if (movement_info.obstacle_avoid_state == FIRST_PHASE){
             printf("On first phase, advancing \n");
             advance_until_clear();
-            printf("Adding travel distance %d ", travel_distance);
-            printf("to motor position %d \n", left_motor_get_pos());
-            travel_distance = travel_distance + left_motor_get_pos(); //ça crashe ici la deuxième fois qu'il passe
-            printf("Added travel distance \n");
+            travel_distance += left_motor_get_pos();
+            printf("Travel distance : %d \n", travel_distance);
+            printf("Distance travelled : %d \n", distance_travelled);
+            turn_to(-movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
         }
         else if (movement_info.obstacle_avoid_state == SECOND_PHASE){
             printf("On second phase, advancing \n");
             go_forward();
-            while (!object_detection() && distance_travelled < travel_distance)
+            while (!object_detection() && distance_travelled < travel_distance) //object_detection()
             {
                 printf("Going forward\n");
+                distance_travelled = distance_travelled + left_motor_get_pos(); //remove when real program
+                printf("Travel distance : %d \n", travel_distance);
+                printf("Distance travelled : %d \n", distance_travelled);
             }
-            distance_travelled = distance_travelled + left_motor_get_pos();
-            if (distance_travelled==travel_distance) movement_info.obstacle_avoid_state = ON_RIGHT_TRACK;
+            //distance_travelled = distance_travelled + left_motor_get_pos();
+            turn_to(-movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
+            if (!(distance_travelled-travel_distance)) {movement_info.obstacle_avoid_state = ON_RIGHT_TRACK;printf("changing state : %d :", movement_info.obstacle_avoid_state);};
         }
 
-        turn_to(-movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
-
-        if(object_detection()) {
+        if(object_detection() && movement_info.obstacle_avoid_state) {
             printf("Object detected \n");
         }
-        else {
+        else if(movement_info.obstacle_avoid_state){
             printf("No object detected, advancing to second phase \n");
             advance_until_clear();
-            printf("changing state : %d \n", movement_info.obstacle_avoid_state);
             movement_info.obstacle_avoid_state = SECOND_PHASE;
-            printf("changing state : %d \n", movement_info.obstacle_avoid_state); //erreur, la valeur est selement changée dans le "else"
+            printf("changing state : %d :", movement_info.obstacle_avoid_state);
         }
-
     }
 
 };
