@@ -105,29 +105,38 @@ void avoid_obstacle(){
     {
         turn_to(movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
         left_motor_set_pos(0);
+        printf("movement state : %d \n", movement_info.obstacle_avoid_state);
 
         if (movement_info.obstacle_avoid_state == FIRST_PHASE){
+            printf("On first phase, advancing \n");
             advance_until_clear();
-            travel_distance = travel_distance + left_motor_get_pos();
+            printf("Adding travel distance %d ", travel_distance);
+            printf("to motor position %d \n", left_motor_get_pos());
+            travel_distance = travel_distance + left_motor_get_pos(); //ça crashe ici la deuxième fois qu'il passe
+            printf("Added travel distance \n");
         }
-        if (movement_info.obstacle_avoid_state == SECOND_PHASE){
+        else if (movement_info.obstacle_avoid_state == SECOND_PHASE){
+            printf("On second phase, advancing \n");
             go_forward();
             while (!object_detection() && distance_travelled < travel_distance)
             {
                 printf("Going forward\n");
             }
             distance_travelled = distance_travelled + left_motor_get_pos();
+            if (distance_travelled==travel_distance) movement_info.obstacle_avoid_state = ON_RIGHT_TRACK;
         }
 
         turn_to(-movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
 
-        if (movement_info.obstacle_avoid_state == SECOND_PHASE && distance_travelled==travel_distance) movement_info.obstacle_avoid_state = ON_RIGHT_TRACK;
-        else if(object_detection()) {
+        if(object_detection()) {
             printf("Object detected \n");
         }
         else {
+            printf("No object detected, advancing to second phase \n");
             advance_until_clear();
-            movement_info.obstacle_avoid_state == SECOND_PHASE;
+            printf("changing state : %d \n", movement_info.obstacle_avoid_state);
+            movement_info.obstacle_avoid_state = SECOND_PHASE;
+            printf("changing state : %d \n", movement_info.obstacle_avoid_state); //erreur, la valeur est selement changée dans le "else"
         }
 
     }
@@ -139,7 +148,6 @@ void advance_until_clear(){
 };
 
 void set_closer_side(){ //à revoir avec les capteurs à distance
-
     int sensor1_intensity = 0;
     int sensor2_intensity = 1;
     if(sensor1_intensity < sensor2_intensity) movement_info.turn_direction = LEFT;
@@ -148,28 +156,30 @@ void set_closer_side(){ //à revoir avec les capteurs à distance
 
 void go_forward(){
     movement_info.state = ADVANCING;
-    printf("left_motor_set_speed(STANDARD_SPEED);\n");
-    printf("right_motor_set_speed(STANDARD_SPEED);\n");
+    printf("left_motor_set_speed(STANDARD_SPEED)");
+    printf("right_motor_set_speed(STANDARD_SPEED);");
 };
 
 void turn_to(int angle){
 
     movement_info.state = TURNING;
+    /*
+    left_motor_set_speed(-movement_info.turn_direction*STANDARD_SPEED);\n
+    right_motor_set_speed(movement_info.turn_direction*STANDARD_SPEED);\n
 
-    //printf("left_motor_set_speed(-movement_info.turn_direction*STANDARD_SPEED);\n");
-    //printf("right_motor_set_speed(movement_info.turn_direction*STANDARD_SPEED);\n");
+    left_motor_set_pos(0);
+    right_motor_set_pos(0);
 
-    //left_motor_set_pos(0);
-    //right_motor_set_pos(0);
-
-    /*while (abs(left_motor_get_pos()) < (PERIMETER_EPUCK*360/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER &&
+    while (abs(left_motor_get_pos()) < (PERIMETER_EPUCK*360/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER &&
            abs(right_motor_get_pos()) < (PERIMETER_EPUCK*360/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
     {
         printf("Turning ...");
-    };*/
+    };
 
-    //printf("left_motor_set_speed(0);\n");
-    //printf("right_motor_set_speed(0);\n");
+    left_motor_set_speed(0);
+    right_motor_set_speed(0);
+
+    */
 
     movement_info.state = STOPED;
     
