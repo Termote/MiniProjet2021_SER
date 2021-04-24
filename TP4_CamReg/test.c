@@ -12,7 +12,7 @@ int main() {
     go_forward();
     while (object_detection())
     {
-        avoid_obstacle();
+        avoid_obstacle(0);
         printf("Obstacle avoided \n");
     }
 

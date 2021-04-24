@@ -28,7 +28,7 @@ int main() {
     go_forward();
     while (object_detection())
     {
-        avoid_obstacle();
+        avoid_obstacle(1);
         printf("Obstacle avoided \n");
     }
 
@@ -45,10 +45,15 @@ int main() {
 struct movement{
 
     enum {
-        SECOND_PHASE = -1,
-        ON_RIGHT_TRACK = 0,
-        FIRST_PHASE = 1
-    } obstacle_avoid_state;
+        NO = 0,
+        YES = 1
+    } on_right_track;
+
+    enum {
+        CONVERGING = -1,
+        PARRALLEL = 0,
+        DEVIATING = 1
+    } orientation;
 
     enum {
         STOPED=0,
@@ -69,7 +74,7 @@ uint32_t left_motor_get_pos(){return 3;};
 
 void movement_init(){
 
-    movement_info.obstacle_avoid_state = 0;
+    movement_info.orientation = 0;
 
     int tmp_angle;
     printf("Select init angle :");
@@ -96,60 +101,88 @@ uint8_t object_detection(){
     return tmp;
 };
 
-void avoid_obstacle(){
+uint8_t advance_until_clear(uint32_t* update_distance, uint8_t calculate_distance, uint32_t max_distance, uint8_t apply_maximum){
+    printf("Advancing until clear \n");
+    printf("Is there something up front (0) or only side (1) : ");
+    scanf("%d", &tmp);
+    if(calculate_distance)printf("Now updating number : %d", *update_distance);
+    if(calculate_distance) *update_distance += left_motor_get_pos();
+    if(calculate_distance)printf(" to : %d \n", *update_distance);
+    if(apply_maximum) printf("Maximum travel is : %d \n", max_distance);
+    return tmp;
+};
 
-    uint32_t travel_distance = 0;//à expliquer pourquoi autant;
+uint8_t avoid_obstacle(uint8_t not_main_track){
+
+    movement_info.turn_direction = RIGHT; //à retirer lors de "set_turning_direction" est fait
+    uint32_t deviation_distance = 0;//à expliquer pourquoi autant;
     uint32_t distance_travelled = 0;
 
-    set_closer_side();
-    movement_info.obstacle_avoid_state = FIRST_PHASE;
+    movement_info.on_right_track = NO;
+    set_turning_direction();
+    movement_info.orientation = DEVIATING;
+    printf("1 Travel distance : %d \n", deviation_distance);
+    printf("1 Distance travelled : %d \n", distance_travelled);
+    turn_to(-movement_info.turn_direction*movement_info.orientation*90);
 
-    while (movement_info.obstacle_avoid_state)
-    {
-        turn_to(movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
-        left_motor_set_pos(0);
+    while (!movement_info.on_right_track)
+    { 
+        if (movement_info.orientation == DEVIATING){
+            printf("On first phase (DEVIATING) \n");
+            left_motor_set_pos(0);
+            while(!advance_until_clear(&deviation_distance,1,0,0) && movement_info.orientation == DEVIATING) {
+            printf("==============Creating new obstacle============== \n");
+            movement_info.orientation += avoid_obstacle(1);
+                    };
 
-        if (movement_info.obstacle_avoid_state == FIRST_PHASE){
-            printf("On first phase, advancing \n");
-            advance_until_clear();
-            travel_distance += left_motor_get_pos();
-            printf("Travel distance : %d \n", travel_distance);
-            printf("Distance travelled : %d \n", distance_travelled);
-            turn_to(-movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
+            turn_to(movement_info.turn_direction*movement_info.orientation*90);
+            movement_info.orientation = PARRALLEL;
+            printf("DEVIATING - Travel distance : %d \n", deviation_distance);
+            printf("DEVIATING - Distance travelled : %d \n", distance_travelled);
         }
-        else if (movement_info.obstacle_avoid_state == SECOND_PHASE){
-            printf("On second phase, advancing \n");
-            go_forward();
-            while (!object_detection() && distance_travelled < travel_distance) //object_detection()
-            {
-                printf("Going forward\n");
-                distance_travelled = distance_travelled + left_motor_get_pos(); //remove when real program
-                printf("Travel distance : %d \n", travel_distance);
-                printf("Distance travelled : %d \n", distance_travelled);
-            }
-            //distance_travelled = distance_travelled + left_motor_get_pos();
-            turn_to(-movement_info.turn_direction*movement_info.obstacle_avoid_state*90);
-            if (!(distance_travelled-travel_distance)) {movement_info.obstacle_avoid_state = ON_RIGHT_TRACK;printf("changing state : %d :", movement_info.obstacle_avoid_state);};
+        if (movement_info.orientation == PARRALLEL){
+            printf("On second phase (PARRALLEL) \n");
+            left_motor_set_pos(0);
+            while(!advance_until_clear(0,0,0,0) && movement_info.orientation == PARRALLEL) {
+            printf("==============Creating new obstacle============== \n");
+            movement_info.orientation += avoid_obstacle(1);
+                    };
+            movement_info.orientation = CONVERGING;
+            printf("DEVIATING - Travel distance : %d \n", deviation_distance);
+            printf("DEVIATING - Distance travelled : %d \n", distance_travelled);
+            turn_to(-movement_info.turn_direction*movement_info.orientation*90);
         }
 
-        if(object_detection() && movement_info.obstacle_avoid_state) {
-            printf("Object detected \n");
-        }
-        else if(movement_info.obstacle_avoid_state){
-            printf("No object detected, advancing to second phase \n");
-            advance_until_clear();
-            movement_info.obstacle_avoid_state = SECOND_PHASE;
-            printf("changing state : %d :", movement_info.obstacle_avoid_state);
+        else if (movement_info.orientation == CONVERGING){
+            printf("On third phase (CONVERGING) \n");
+            printf("CONVERGING 2.1 - Travel distance : %d \n", deviation_distance);
+            printf("CONVERGING 2.1 - Distance travelled : %d \n", distance_travelled);
+
+            left_motor_set_pos(0);
+            while(!advance_until_clear(&distance_travelled,1,distance_travelled-deviation_distance,1) && movement_info.orientation == CONVERGING) {
+            printf("==============Creating new obstacle============== \n");
+            movement_info.orientation += avoid_obstacle(1);                         //Erreur au niveau de la sortie de boucle : type "orientation" fausse.
+                    };
+            printf("CONVERGING 2.2 - Travel distance : %d \n", deviation_distance);
+            printf("CONVERGING 2.2 - Distance travelled : %d \n", distance_travelled);
+            if (!(distance_travelled-deviation_distance)) {
+                movement_info.on_right_track = YES;
+                printf("changing state : %d :", movement_info.on_right_track);
+                };
+            
+            if (!not_main_track||object_detection()) {
+                turn_to(movement_info.turn_direction*movement_info.orientation*90);
+                printf("==============Leaving Boucle===============");
+                return 1;
+                };
         }
     }
+    printf("==============Leaving Boucle===============");
+    return 0;
 
 };
 
-void advance_until_clear(){
-    printf("Advancing until clear \n");
-};
-
-void set_closer_side(){ //à revoir avec les capteurs à distance
+void set_turning_direction(){ //à revoir avec les capteurs à distance
     int sensor1_intensity = 0;
     int sensor2_intensity = 1;
     if(sensor1_intensity < sensor2_intensity) movement_info.turn_direction = LEFT;
