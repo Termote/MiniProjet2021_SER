@@ -78,89 +78,9 @@ static THD_FUNCTION(selector_thd, arg)
 
     while(stop_loop == 0) {	// positionne le robot dans la direction indiquée
     	time = chVTGetSystemTime();
-
-		switch(get_selector()) {
-			case 0: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 1: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 2: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 3: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 4: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 5: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 6: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 7:
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 8: 
-				movement_init();
-				stop_loop = 1;
-				break;
-			case 9: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 10: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 11:
-				movement_init();
-				stop_loop = 1;
-				break;
-
-	            
-
-			case 12: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 13:
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 14: 
-				movement_init();
-				stop_loop = 1;
-				break;
-
-			case 15:
-				movement_init();
-				stop_loop = 1;
-				break;
-		}
+	    
+		movement_init();
+		stop_loop = 1;
     }
 }
 
