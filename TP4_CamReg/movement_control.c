@@ -256,15 +256,15 @@ void halt(){
 void turn_to(int angle){
 
     movement_info.state = TURNING;
-    /*
+   
     left_motor_set_speed(-movement_info.turn_direction*STANDARD_SPEED);\n
     right_motor_set_speed(movement_info.turn_direction*STANDARD_SPEED);\n
 
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
-    while (abs(left_motor_get_pos()) < (PERIMETER_EPUCK*360/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER &&
-           abs(right_motor_get_pos()) < (PERIMETER_EPUCK*360/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
+    while (abs(left_motor_get_pos()) < (PERIMETER_EPUCK*FULL_PERIMETER_DEG/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER &&
+           abs(right_motor_get_pos()) < (PERIMETER_EPUCK*FULL_PERIMETER_DEG/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
     {
         printf("Turning ...");
     };
@@ -272,7 +272,6 @@ void turn_to(int angle){
     left_motor_set_speed(0);
     right_motor_set_speed(0);
 
-    */
 
     movement_info.state = STOPED;
     
