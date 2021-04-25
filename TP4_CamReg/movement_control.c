@@ -1,4 +1,4 @@
-#include <motors.h>
+//#include <motors.h>
 #include "movement_control.h"
 #include <math.h>
 
@@ -20,6 +20,10 @@ typedef int  int32_t;
 
 #define CLOSER              -1
 #define FURTHER              1
+
+#define TRUE                 1
+#define FALSE                0
+
 
 /****************************TEST MAIN ************************/
 #include <stdio.h>
@@ -57,7 +61,7 @@ struct movement{
         YES = 1
     } on_right_track;
 
-    uint8_t obstacle_detection[4]; // FRONT,LEFT, BACK, RIGHT
+    uint8_t obstacle_detection[2]; // FRONT,LEFT, BACK, RIGHT
 
     enum {
         FORWARD = 0,
@@ -88,7 +92,7 @@ void movement_init(){
     movement_info.orientation = 0;
     
     int tmp_angle = 0; //get_selector
-    tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
+    //tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
     printf("Select init angle :");
     scanf("%d", &tmp_angle);
     analyse_angle(&tmp_angle);
@@ -96,7 +100,7 @@ void movement_init(){
 };
 
 void update_orientation(){
-    movement_info.orientation += movement_info.turn_direction;
+    movement_info.orientation += -movement_info.turn_direction;
     if (movement_info.orientation > CONVERGING) movement_info.orientation = FORWARD;
     if (movement_info.orientation < FORWARD) movement_info.orientation = CONVERGING;
     printf("New orientation : %d\n", movement_info.orientation);
@@ -112,23 +116,13 @@ void analyse_angle(int* angle){
 };
 
 uint8_t tmp; //à deleter lors de la création de la fonction
-uint8_t change_on_front(){ 
+uint8_t status_on_front(){ 
     printf("Select object detected on front (1) or not (0) : ");
     scanf("%d", &tmp);
     return tmp;
 };
-uint8_t change_on_right(){ 
-    printf("Select object detected on right (1) or not (0) : ");
-    scanf("%d", &tmp);
-    return tmp;
-};
-uint8_t change_on_back(){ 
-    printf("Select object detected on back (1) or not (0) : ");
-    scanf("%d", &tmp);
-    return tmp;
-};
-uint8_t change_on_left(){ 
-    printf("Select object detected on left (1) or not (0) : ");
+uint8_t status_on_side(){ 
+    printf("Select object detected on side (1) or not (0) : ");
     scanf("%d", &tmp);
     return tmp;
 };
@@ -136,23 +130,16 @@ uint8_t change_on_left(){
 uint8_t object_detection(){
 
     printf("Detecting objects\n");
-    if(change_on_front()) {
+    if(status_on_front() != movement_info.obstacle_detection[0]) {
         movement_info.obstacle_detection[0] = !movement_info.obstacle_detection[0];
+        printf("Detecting change up front\n");
         return 1;
     }
-    else if(change_on_left()) {
+    else if(status_on_side()!= movement_info.obstacle_detection[1]) {
         movement_info.obstacle_detection[1] = !movement_info.obstacle_detection[1];
+        printf("Detecting change on sides\n");
         return 1;
     }
-    else if(change_on_back()) {
-        movement_info.obstacle_detection[2] = !movement_info.obstacle_detection[2];
-        return 1;
-    }
-    else if(change_on_right()) {
-        movement_info.obstacle_detection[3] = !movement_info.obstacle_detection[3];
-        return 1;
-    };
-
     return 0;
 };
 
@@ -163,6 +150,7 @@ void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_d
     left_motor_set_pos(0);
     while (!object_detection())//&& *deviation_distance - left_motor_get_pos()
     {
+        printf(". . . \n");
     }
     halt();
 
@@ -182,6 +170,11 @@ void find_turning_side (){
 
 };
 
+void init_obstacle_tection(){
+    movement_info.obstacle_detection[0] = 0;
+    movement_info.obstacle_detection[1] = abs(movement_info.turn_direction); //changes to 0 if advancing without sidewall
+};
+
 void avoid_obstacle(){
 
     movement_info.turn_direction = RIGHT; //à retirer lors de "set_turning_direction" est fait
@@ -190,43 +183,52 @@ void avoid_obstacle(){
 
     movement_info.on_right_track = NO;
     set_turning_direction();
+    init_obstacle_tection();
     turn_to(movement_info.turn_direction*90);
     movement_info.orientation = DIVERGING;
 
     while (!movement_info.on_right_track)
     { 
-        if (movement_info.orientation == FORWARD){
-            printf("Going FORWARD \n");
-            advance_until_interest_point(&forward_distance, &deviation_distance, FURTHER);
-            turn_to(movement_info.turn_direction*90);
-            update_orientation();
-            printf("DEVIATING - Forward distance : %d \n", forward_distance);
-            printf("DEVIATING - Deviation travelled : %d \n", deviation_distance);
-        }
-        else if (movement_info.orientation == BACKWARD){
-            printf("Going BACKWARDS \n");
-            advance_until_interest_point(&forward_distance, &deviation_distance, CLOSER);
-            turn_to(movement_info.turn_direction*90);
-            update_orientation();
-            printf("DEVIATING - Forward distance : %d \n", forward_distance);
-            printf("DEVIATING - Deviation travelled : %d \n", deviation_distance);
-        }
-        else if (movement_info.orientation == DIVERGING){
-            printf("Going DIVERGING \n");
-            advance_until_interest_point(&deviation_distance, &deviation_distance, FURTHER);
-            turn_to(movement_info.turn_direction*90);
-            update_orientation();
-            printf("DEVIATING - Forward distance : %d \n", forward_distance);
-            printf("DEVIATING - Deviation travelled : %d \n", deviation_distance);
-        }
-        else if (movement_info.orientation == CONVERGING){
-            printf("Going CONVERGING \n");
-            advance_until_interest_point(&deviation_distance, &deviation_distance, CLOSER);
-            turn_to(movement_info.turn_direction*90);
-            update_orientation();
-            printf("DEVIATING - Forward distance : %d \n", forward_distance);
-            printf("DEVIATING - Deviation travelled : %d \n", deviation_distance);
+        init_obstacle_tection();
+        printf("Orientation analysis : %d \n", movement_info.orientation);
+        switch(movement_info.orientation) {
+            case FORWARD:
+                printf("Going FORWARD \n");
+                advance_until_interest_point(&forward_distance, &deviation_distance, FURTHER);
+                turn_to(-movement_info.turn_direction*90);
+                update_orientation();
+                printf("FORWARD - Forward distance : %d \n", forward_distance);
+                printf("FORWARD - Deviation travelled : %d \n", deviation_distance);
+                break;
+
+            case BACKWARD:
+                printf("Going BACKWARDS \n");
+                advance_until_interest_point(&forward_distance, &deviation_distance, CLOSER);
+                turn_to(-movement_info.turn_direction*90);
+                update_orientation();
+                printf("BACKWARDS - Forward distance : %d \n", forward_distance);
+                printf("BACKWARDS - Deviation travelled : %d \n", deviation_distance);
+                break;
+            
+            case DIVERGING:
+                printf("Going DIVERGING \n");
+                advance_until_interest_point(&deviation_distance, &deviation_distance, FURTHER);
+                turn_to(-movement_info.turn_direction*90);
+                update_orientation();
+                printf("DIVERGING - Forward distance : %d \n", forward_distance);
+                printf("DIVERGING - Deviation travelled : %d \n", deviation_distance);
+                break;
+            
+            case CONVERGING:
+                printf("Going CONVERGING \n");
+                advance_until_interest_point(&deviation_distance, &deviation_distance, CLOSER);
+                turn_to(-movement_info.turn_direction*90);
+                update_orientation();
+                printf("CONVERGING - Forward distance : %d \n", forward_distance);
+                printf("CONVERGING - Deviation travelled : %d \n", deviation_distance);
+                break;
         };
+        if(deviation_distance == 0 && forward_distance > 0) movement_info.on_right_track = TRUE;
     };
 };
 
@@ -256,7 +258,7 @@ void halt(){
 void turn_to(int angle){
 
     movement_info.state = TURNING;
-   
+   /*
     left_motor_set_speed(-movement_info.turn_direction*STANDARD_SPEED);\n
     right_motor_set_speed(movement_info.turn_direction*STANDARD_SPEED);\n
 
@@ -272,7 +274,7 @@ void turn_to(int angle){
     left_motor_set_speed(0);
     right_motor_set_speed(0);
 
-
+*/
     movement_info.state = STOPED;
     
     printf("turned to: %d \n", angle);
