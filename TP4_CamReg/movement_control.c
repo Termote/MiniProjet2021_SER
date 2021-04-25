@@ -13,6 +13,10 @@ typedef int  int32_t;
 #define STANDARD_SPEED      5 // standard speed used for the majority of movements
 #define WHEEL_DISTANCE      5.35f    //cm
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
+#define SELECTOR_OFFSET 	90
+#define SELECTOR_MAX		16
+#define FULL_PERIMETER_DEG  360
+
 
 #define CLOSER              -1
 #define FURTHER              1
@@ -82,8 +86,9 @@ uint32_t left_motor_get_pos(){return 3;};
 void movement_init(){
 
     movement_info.orientation = 0;
-
-    int tmp_angle;
+    
+    int tmp_angle = 0; //get_selector
+    tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
     printf("Select init angle :");
     scanf("%d", &tmp_angle);
     analyse_angle(&tmp_angle);
@@ -100,7 +105,7 @@ void update_orientation(){
 void analyse_angle(int* angle){
 
     printf("Analysing given angle %d", *angle);
-    if(*angle > 180) *angle = *angle - 360;
+    if(*angle > FULL_PERIMETER_DEG/2) *angle = *angle - FULL_PERIMETER_DEG;
     printf("Angle changed to : %d", *angle);
     if(angle <= 0) movement_info.turn_direction = LEFT;
     else movement_info.turn_direction = RIGHT;
