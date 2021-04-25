@@ -64,6 +64,107 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
+static THD_FUNCTION(selector_thd, arg)
+{
+    (void) arg;
+    chRegSetThreadName(__FUNCTION__);
+
+    uint8_t stop_loop = 0;
+    systime_t time;
+
+    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
+    proximity_msg_t prox_values;
+    int16_t leftSpeed = 0, rightSpeed = 0;
+
+    while(stop_loop == 0) {	// positionne le robot dans la direction indiquée
+    	time = chVTGetSystemTime();
+
+		switch(get_selector()) {
+			case 0: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 1: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 2: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 3: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 4: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 5: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 6: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 7:
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 8: 
+				movement_init();
+				stop_loop = 1;
+				break;
+			case 9: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 10: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 11:
+				movement_init();
+				stop_loop = 1;
+				break;
+
+	            
+
+			case 12: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 13:
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 14: 
+				movement_init();
+				stop_loop = 1;
+				break;
+
+			case 15:
+				movement_init();
+				stop_loop = 1;
+				break;
+		}
+    }
+}
+
+
 int main(void)
 {
 
