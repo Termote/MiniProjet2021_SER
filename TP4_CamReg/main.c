@@ -45,6 +45,10 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
+
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
@@ -64,7 +68,7 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
-static THD_FUNCTION(selector_thd, arg)
+/*static THD_FUNCTION(selector_thd, arg)
 {
     (void) arg;
     chRegSetThreadName(__FUNCTION__);
@@ -83,7 +87,7 @@ static THD_FUNCTION(selector_thd, arg)
 		stop_loop = 1;
     }
 }
-
+*/
 
 int main(void)
 {
@@ -92,27 +96,49 @@ int main(void)
     chSysInit();
     mpu_init();
 
+    /** Inits the Inter Process Communication bus. */
+    messagebus_init(&bus, &bus_lock, &bus_condvar);
+
     //starts the serial communication
     serial_start();
     //start the USB communication
     usb_start();
     //starts the camera
     dcmi_start();
-	po8030_start();
-	//inits the motors
-	motors_init();
+    po8030_start();
+    //inits the motors
+    motors_init();
+    //start proximity sensors
+    proximity_start();
 
-	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
-	process_image_start();
+    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
+    proximity_msg_t prox_values;
+
+    //stars the threads for the pi regulator and the processing of the image
+    pi_regulator_start();
+    process_image_start();
 
     /* Infinite loop. */
     while (1) {
-    	//waits 1 second
-		chprintf((BaseSequentialStream*)&SD6, "This is some message with a value: %d\r\n", 42);
-        chThdSleepMilliseconds(1000);
+
+    	messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
+
+
+    	for (uint8_t i = 0; i < sizeof(prox_values.ambient)/sizeof(prox_values.ambient[0]); i++) {
+					//for (uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; i++) {
+						chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.ambient[i]);
+						chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.reflected[i]);
+						chprintf((BaseSequentialStream *)&SD3, "%4d", prox_values.delta[i]);
+						chprintf((BaseSequentialStream *)&SD3, "\r\n");
+		}
+			chprintf((BaseSequentialStream *)&SD3, "\r\n");
+
+
+	//waits 3 second
+	chThdSleepMilliseconds(3000);
     }
 }
+
 
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
