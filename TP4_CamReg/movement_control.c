@@ -1,18 +1,17 @@
-//#include <motors.h>
+#include "motors.h"
 #include "movement_control.h"
 #include <math.h>
+#include "selector.h"
+#include "chprintf.h"
 
 typedef unsigned char   uint8_t;
-typedef char   int8_t;
-typedef short  int16_t;
-typedef unsigned   uint32_t;
-typedef int  int32_t;
+
 
 #define NSTEP_ONE_TURN              1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER             13 // [cm]
 #define STANDARD_SPEED              5 // standard speed used for the majority of movements
 #define WHEEL_DISTANCE              5.35f    //cm
-#define PERIMETER_EPUCK             (PI * WHEEL_DISTANCE)
+#define PERIMETER_EPUCK             (3.14 * WHEEL_DISTANCE)
 #define EPUCK_RADIUS                40 //mm
 #define SELECTOR_OFFSET 	        90
 #define SELECTOR_MAX		        16
@@ -110,8 +109,6 @@ void movement_init(){
     
     int tmp_angle = 0; //get_selector
     //tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
-    printf("Select init angle :");
-    scanf("%d", &tmp_angle);
     analyse_angle(&tmp_angle);
     turn_to(tmp_angle); //get_selector
 };
