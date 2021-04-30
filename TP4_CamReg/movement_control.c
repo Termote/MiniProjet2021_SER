@@ -96,9 +96,6 @@ struct movement{
 
 } movement_info;
 
-void left_motor_set_pos(uint32_t x){};
-uint32_t left_motor_get_pos(){return 3;};
-
 uint16_t delta_to_cm(uint32_t delta){
     return 51.178*exp(-delta*0.001);        //Magic number
 }
@@ -111,14 +108,14 @@ void movement_init(){
     //tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
     analyse_angle(&tmp_angle);
     turn_to(tmp_angle); //get_selector
-};
+}
 
 void update_orientation(){
     movement_info.orientation += -movement_info.turn_direction;
     if (movement_info.orientation > CONVERGING) movement_info.orientation = FORWARD;
     if (movement_info.orientation < FORWARD) movement_info.orientation = CONVERGING;
     printf("New orientation : %d\n", movement_info.orientation);
-};
+}
 
 void analyse_angle(int* angle){
 
@@ -127,7 +124,7 @@ void analyse_angle(int* angle){
     printf("Angle changed to : %d", *angle);
     if(*angle <= 0) movement_info.turn_direction = LEFT;
     else movement_info.turn_direction = RIGHT;
-};
+}
 
 uint8_t tmp; //à deleter lors de la création de la fonction
 uint8_t status_on_front(){ 
@@ -142,7 +139,7 @@ uint8_t status_on_side(){
     //printf("Select object detected on side (1) or not (0) : ");
     //scanf("%d", &tmp);
     else return 0;
-};
+}
 
 uint8_t object_detection(){
 
@@ -158,7 +155,7 @@ uint8_t object_detection(){
         return 1;
     }
     return 0;
-};
+}
 
 void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_distance, int8_t direction_coefficient){ //until change in "obstacle_detection" 
     
@@ -175,7 +172,7 @@ void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_d
     *update_distance += direction_coefficient*left_motor_get_pos();
     printf(" to : %d \n", *update_distance);
     find_turning_side();
-};
+}
 
 void find_turning_side (){
     
@@ -185,12 +182,12 @@ void find_turning_side (){
     printf("Turning side now : %d \n", movement_info.turn_direction);
     printf("front obstacle : %d\n", movement_info.obstacle_detection[0]);
 
-};
+}
 
 void init_obstacle_tection(){
     movement_info.obstacle_detection[0] = 0;
     movement_info.obstacle_detection[1] = abs(movement_info.turn_direction); //changes to 0 if advancing without sidewall
-};
+}
 
 void avoid_obstacle(){
 
@@ -246,7 +243,7 @@ void avoid_obstacle(){
         };
         if(deviation_distance == 0 && forward_distance > 0) movement_info.on_right_track = TRUE;
     };
-};
+}
 
 void set_turning_direction() { //à revoir avec les capteurs à distance
     printf("Setting turn direction\n");
@@ -260,18 +257,18 @@ void set_turning_direction() { //à revoir avec les capteurs à distance
         movement_info.front_sensor = FRONT_FRONT_LEFT_SENSOR;
         movement_info.side_sensor = RIGHT_SENSOR;
     };
-};
+}
 
 void go_forward(){
     movement_info.state = ADVANCING;
     //left_motor_set_speed(STANDARD_SPEED);
     //right_motor_set_speed(STANDARD_SPEED);
     printf("FORWARD\n");
-};
+}
 
 void advance_distance(uint16_t distance){ //mm
 
-    go_forward()
+    go_forward();
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
@@ -291,7 +288,7 @@ void halt(){
     //left_motor_set_speed(0);
     //right_motor_set_speed(0);
     printf("HALT\n");
-};
+}
 
 void turn_to(int angle){
 
@@ -318,6 +315,5 @@ void turn_to(int angle){
    right_motor_set_speed(0);
 
    movement_info.state = STOPED;
-    
 
-};
+}
