@@ -3,13 +3,13 @@
 #include <math.h>
 #include "selector.h"
 #include "chprintf.h"
+#include "sensors/proximity.h"
 
 typedef unsigned char   uint8_t;
 
 
 #define NSTEP_ONE_TURN              1000 // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER             13 // [cm]
-#define STANDARD_SPEED              5 // standard speed used for the majority of movements
 #define WHEEL_DISTANCE              5.35f    //cm
 #define PERIMETER_EPUCK             (3.14 * WHEEL_DISTANCE)
 #define EPUCK_RADIUS                40 //mm
@@ -40,7 +40,7 @@ typedef unsigned char   uint8_t;
 #include <string.h>
 #include "movement_control.h"
 
-int main() {
+/*int main() {
     //init motor, camera and sensors + other modules
     //Put all threads to sleep except motor
     movement_init();
@@ -60,7 +60,7 @@ int main() {
    
    return 0;
 }
-
+*/
 /****************************TEST MAIN ************************/
 proximity_msg_t prox_values;
 struct movement{
@@ -105,7 +105,7 @@ void movement_init(){
     movement_info.orientation = 0;
     
     int tmp_angle = 0; //get_selector
-    //tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
+    tmp_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
     analyse_angle(&tmp_angle);
     turn_to(tmp_angle); //get_selector
 }
@@ -114,14 +114,11 @@ void update_orientation(){
     movement_info.orientation += -movement_info.turn_direction;
     if (movement_info.orientation > CONVERGING) movement_info.orientation = FORWARD;
     if (movement_info.orientation < FORWARD) movement_info.orientation = CONVERGING;
-    printf("New orientation : %d\n", movement_info.orientation);
 }
 
 void analyse_angle(int* angle){
 
-    printf("Analysing given angle %d", *angle);
     if(*angle > FULL_PERIMETER_DEG/2) *angle = *angle - FULL_PERIMETER_DEG;
-    printf("Angle changed to : %d", *angle);
     if(*angle <= 0) movement_info.turn_direction = LEFT;
     else movement_info.turn_direction = RIGHT;
 }
@@ -130,28 +127,25 @@ uint8_t tmp; //à deleter lors de la création de la fonction
 uint8_t status_on_front(){ 
     if (prox_values.delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
         || prox_values.delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return 1;
-    //printf("Select object detected on front (1) or not (0) : ");
-    //scanf("%d", &tmp);
+
     else return 0;
-};
+}
 uint8_t status_on_side(){ 
     if (prox_values.delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return 1;
-    //printf("Select object detected on side (1) or not (0) : ");
-    //scanf("%d", &tmp);
+	
     else return 0;
 }
 
 uint8_t object_detection(){
 
-    printf("Detecting objects\n");
     if(status_on_front() != movement_info.obstacle_detection[0]) {
         movement_info.obstacle_detection[0] = !movement_info.obstacle_detection[0];
-        printf("Detecting change up front\n");
+
         return 1;
     }
     else if(status_on_side()!= movement_info.obstacle_detection[1]) {
         movement_info.obstacle_detection[1] = !movement_info.obstacle_detection[1];
-        printf("Detecting change on sides\n");
+
         return 1;
     }
     return 0;
@@ -159,18 +153,18 @@ uint8_t object_detection(){
 
 void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_distance, int8_t direction_coefficient){ //until change in "obstacle_detection" 
     
-    printf("Advancing until interest point \n");
+
     go_forward();
     left_motor_set_pos(0);
     while (!object_detection() && *deviation_distance - left_motor_get_pos())
     {
-        printf(". . . \n");
+
     }
     halt();
     if(!movement_info.obstacle_detection[1]) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
-    printf("Now updating number : %d", *update_distance);
+
     *update_distance += direction_coefficient*left_motor_get_pos();
-    printf(" to : %d \n", *update_distance);
+
     find_turning_side();
 }
 
@@ -179,8 +173,6 @@ void find_turning_side (){
     if(movement_info.obstacle_detection[0]) movement_info.turn_direction = RIGHT;
     else movement_info.turn_direction = LEFT;
     if(movement_info.obstacle_detection[0] && movement_info.orientation == CONVERGING) movement_info.turn_direction = CENTER;
-    printf("Turning side now : %d \n", movement_info.turn_direction);
-    printf("front obstacle : %d\n", movement_info.obstacle_detection[0]);
 
 }
 
@@ -261,9 +253,8 @@ void set_turning_direction() { //à revoir avec les capteurs à distance
 
 void go_forward(){
     movement_info.state = ADVANCING;
-    //left_motor_set_speed(STANDARD_SPEED);
-    //right_motor_set_speed(STANDARD_SPEED);
-    printf("FORWARD\n");
+    left_motor_set_speed(MOTOR_SPEED_LIMIT);
+    right_motor_set_speed(MOTOR_SPEED_LIMIT);
 }
 
 void advance_distance(uint16_t distance){ //mm
@@ -272,9 +263,8 @@ void advance_distance(uint16_t distance){ //mm
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
-    while (left_motor_get_pos() < (distance/(PERIMETER_EPUCK*CONVERSION_CM_MM))* NSTEP_ONE_TURN / WHEEL_PERIMETER)
+    while (left_motor_get_pos() < (distance/CONVERSION_CM_MM)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
     {
-        printf("going ...");
     };
 
     left_motor_set_speed(0);
@@ -285,9 +275,9 @@ void advance_distance(uint16_t distance){ //mm
 
 void halt(){
     movement_info.state = STOPED;
-    //left_motor_set_speed(0);
-    //right_motor_set_speed(0);
-    printf("HALT\n");
+    left_motor_set_speed(0);
+    right_motor_set_speed(0);
+
 }
 
 void turn_to(int angle){
@@ -302,7 +292,7 @@ void turn_to(int angle){
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
-    double temp = angle;
+    float temp = angle;
 
     while (abs(left_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN) &&
                abs(right_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN )) {
