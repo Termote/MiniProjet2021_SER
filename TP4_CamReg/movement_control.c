@@ -24,6 +24,7 @@ typedef int  int32_t;
 #define RIGHT_SENSOR                2
 #define LEFT_SENSOR                 5
 
+#define CONVERSION_CM_MM    10
 
 #define CLOSER              -1
 #define FURTHER              1
@@ -272,7 +273,20 @@ void go_forward(){
 };
 
 void advance_distance(uint16_t distance){ //mm
-    
+
+    go_forward()
+    left_motor_set_pos(0);
+    right_motor_set_pos(0);
+
+    while (left_motor_get_pos() < (distance/(PERIMETER_EPUCK*CONVERSION_CM_MM))* NSTEP_ONE_TURN / WHEEL_PERIMETER)
+    {
+        printf("going ...");
+    };
+
+    left_motor_set_speed(0);
+    right_motor_set_speed(0);
+
+    movement_info.state = STOPED;
 }
 
 void halt(){
@@ -306,5 +320,3 @@ void turn_to(int angle){
     
     printf("turned to: %d \n", angle);
 };
-
-
