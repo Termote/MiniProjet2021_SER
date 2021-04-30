@@ -68,26 +68,7 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
-/*static THD_FUNCTION(selector_thd, arg)
-{
-    (void) arg;
-    chRegSetThreadName(__FUNCTION__);
 
-    uint8_t stop_loop = 0;
-    systime_t time;
-
-    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
-    proximity_msg_t prox_values;
-    int16_t leftSpeed = 0, rightSpeed = 0;
-
-    while(stop_loop == 0) {	// positionne le robot dans la direction indiquée
-    	time = chVTGetSystemTime();
-	    
-		movement_init();
-		stop_loop = 1;
-    }
-}
-*/
 
 int main(void)
 {
@@ -117,6 +98,8 @@ int main(void)
     //stars the threads for the pi regulator and the processing of the image
     pi_regulator_start();
     process_image_start();
+	
+   movement_init();
 
     /* Infinite loop. */
     while (1) {
