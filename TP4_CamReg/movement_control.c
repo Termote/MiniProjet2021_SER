@@ -299,24 +299,28 @@ void halt(){
 void turn_to(int angle){
 
     movement_info.state = TURNING;
-   /*
-    left_motor_set_speed(-movement_info.turn_direction*STANDARD_SPEED);\n
-    right_motor_set_speed(movement_info.turn_direction*STANDARD_SPEED);\n
+
+    left_motor_set_speed(-movement_info.turn_direction*MOTOR_SPEED_LIMIT);
+    right_motor_set_speed(movement_info.turn_direction*MOTOR_SPEED_LIMIT);
+
+    chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
 
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
-    while (abs(left_motor_get_pos()) < (PERIMETER_EPUCK*FULL_PERIMETER_DEG/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER &&
-           abs(right_motor_get_pos()) < (PERIMETER_EPUCK*FULL_PERIMETER_DEG/angle)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
-    {
-        printf("Turning ...");
-    };
+    double temp = angle;
 
-    left_motor_set_speed(0);
-    right_motor_set_speed(0);
+    while (abs(left_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN) &&
+               abs(right_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN )) {
+    	chprintf((BaseSequentialStream *)&SD3, "dans while \r\n ");
+    	chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
+	};
 
-*/
-    movement_info.state = STOPED;
+
+   left_motor_set_speed(0);
+   right_motor_set_speed(0);
+
+   movement_info.state = STOPED;
     
-    printf("turned to: %d \n", angle);
+
 };
