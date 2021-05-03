@@ -79,17 +79,6 @@ uint16_t delta_to_cm(uint32_t delta){
     return 51.178*exp(-delta*0.001);                //Return an exponential conversion of the distance in cm from the obstacle
 }
 
-//external
-void movement_init(){                               //Initiates some values and turns to selected direction.
-
-    movement_info.orientation = 0;
-
-    int selector_angle = 0;
-    selector_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
-    analyse_angle(&selector_angle);
-    turn_to(selector_angle);
-}
-
 void update_orientation(){                          // Updates orientation from current turning side (-1 or 1)
 
     movement_info.orientation += -movement_info.turn_direction;
@@ -111,24 +100,12 @@ uint8_t status_on_front(){                          //Returns TRUE if there is a
 
     else return FALSE;
 }
+
 uint8_t status_on_side(){                           //Returns TRUE if there is an object detected on object side
 
     if (prox_values.delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
 	
     else return FALSE;
-}
-
-uint8_t object_detection(){                         //Returns TRUE if there is a change on proximity sensors
-
-    if(status_on_front() != movement_info.obstacle_detection[0]) {
-        movement_info.obstacle_detection[0] = !movement_info.obstacle_detection[0];
-        return TRUE;
-    }
-    else if(status_on_side()!= movement_info.obstacle_detection[1]) {
-        movement_info.obstacle_detection[1] = !movement_info.obstacle_detection[1];
-        return TRUE;
-    }
-    return FALSE;
 }
 
 /* The next function advances forward until a change in proximity sensors is detected,
@@ -159,6 +136,88 @@ void find_turning_side (){                          // Determines witch side to 
 void init_obstacle_tection(){                       // Sets obstacles after a turn
     movement_info.obstacle_detection[0] = 0;
     movement_info.obstacle_detection[1] = abs(movement_info.turn_direction); //changes to 0 if advancing without sidewall
+}
+
+void set_turning_direction() {                      // Finds inicial turning direction, looks for a "shorter" side, or a slope
+    if(prox_values.delta[FRONT_LEFT_SENSOR] < prox_values.delta[FRONT_RIGHT_SENSOR]) {
+        movement_info.turn_direction = LEFT; 
+        movement_info.obstacle_avoiding_side = LEFT;
+        movement_info.front_sensor = FRONT_FRONT_RIGHT_SENSOR;
+        movement_info.side_sensor = RIGHT_SENSOR;
+    }
+    else{
+        movement_info.turn_direction = RIGHT;
+        movement_info.obstacle_avoiding_side = RIGHT;
+        movement_info.front_sensor = FRONT_FRONT_LEFT_SENSOR;
+        movement_info.side_sensor = RIGHT_SENSOR;
+    };
+}
+
+void advance_distance(uint16_t distance){           // Makes the e-puck go forward a certain amount of mm
+
+    go_forward();
+    left_motor_set_pos(0);
+    right_motor_set_pos(0);
+
+    while (left_motor_get_pos() < (distance/CONVERSION_CM_MM)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
+    {
+    };
+    halt();
+}
+
+void halt(){                                        // Stops the motors
+    movement_info.state = STOPED;
+    left_motor_set_speed(0);
+    right_motor_set_speed(0);
+}
+
+void turn_to(int angle){                            // Turns the e-puck a derired angle
+
+    movement_info.state = TURNING;
+    // The e-puck will pivot on itself
+    left_motor_set_speed(-movement_info.turn_direction*MOTOR_SPEED_LIMIT);
+    right_motor_set_speed(movement_info.turn_direction*MOTOR_SPEED_LIMIT);
+
+    chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
+
+    left_motor_set_pos(0);
+    right_motor_set_pos(0);
+
+    float temp = angle;         //à faire en plus clean !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    // Turns until the desired angle is reached
+    while (abs(left_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN) &&
+               abs(right_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN )) {
+    	chprintf((BaseSequentialStream *)&SD3, "dans while \r\n ");
+    	chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
+	};
+    halt();
+}
+
+/*************************END INTERNAL FUNCTIONS**********************************/
+
+/****************************PUBLIC FUNCTIONS*************************************/
+void movement_init(){                               //Initiates some values and turns to selected direction.
+
+    movement_info.orientation = 0;
+
+    int selector_angle = 0;
+    selector_angle = get_selector()*FULL_PERIMETER_DEG/SELECTOR_MAX +SELECTOR_OFFSET;
+    analyse_angle(&selector_angle);
+    turn_to(selector_angle);
+}
+
+uint8_t object_detection(){                         //Returns TRUE if there is a change on proximity sensors
+
+    if(status_on_front() != movement_info.obstacle_detection[0]) {
+        movement_info.obstacle_detection[0] = !movement_info.obstacle_detection[0];
+        return TRUE;
+    }
+    else if(status_on_side()!= movement_info.obstacle_detection[1]) {
+        movement_info.obstacle_detection[1] = !movement_info.obstacle_detection[1];
+        return TRUE;
+    }
+    return FALSE;
 }
 
 void avoid_obstacle(){                              // Function used to avoid an obstacle
@@ -207,64 +266,10 @@ void avoid_obstacle(){                              // Function used to avoid an
     };
 }
 
-void set_turning_direction() {                      // Finds inicial turning direction, looks for a "shorter" side, or a slope
-    if(prox_values.delta[FRONT_LEFT_SENSOR] < prox_values.delta[FRONT_RIGHT_SENSOR]) {
-        movement_info.turn_direction = LEFT; 
-        movement_info.obstacle_avoiding_side = LEFT;
-        movement_info.front_sensor = FRONT_FRONT_RIGHT_SENSOR;
-        movement_info.side_sensor = RIGHT_SENSOR;
-    }
-    else{
-        movement_info.turn_direction = RIGHT;
-        movement_info.obstacle_avoiding_side = RIGHT;
-        movement_info.front_sensor = FRONT_FRONT_LEFT_SENSOR;
-        movement_info.side_sensor = RIGHT_SENSOR;
-    };
-}
-
 void go_forward(){                                  // Makes the e-puck go forward indefinetly
     movement_info.state = ADVANCING;
     left_motor_set_speed(MOTOR_SPEED_LIMIT);
     right_motor_set_speed(MOTOR_SPEED_LIMIT);
 }
 
-void advance_distance(uint16_t distance){           // Makes the e-puck go forward a certain amount of mm
-
-    go_forward();
-    left_motor_set_pos(0);
-    right_motor_set_pos(0);
-
-    while (left_motor_get_pos() < (distance/CONVERSION_CM_MM)* NSTEP_ONE_TURN / WHEEL_PERIMETER)
-    {
-    };
-    halt();
-}
-
-void halt(){                                        // Stops the motors
-    movement_info.state = STOPED;
-    left_motor_set_speed(0);
-    right_motor_set_speed(0);
-}
-
-void turn_to(int angle){                            // Turns the e-puck a derired angle
-
-    movement_info.state = TURNING;
-    // The e-puck will pivot on itself
-    left_motor_set_speed(-movement_info.turn_direction*MOTOR_SPEED_LIMIT);
-    right_motor_set_speed(movement_info.turn_direction*MOTOR_SPEED_LIMIT);
-
-    chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
-
-    left_motor_set_pos(0);
-    right_motor_set_pos(0);
-
-    float temp = angle;         //à faire en plus clean !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    // Turns until the desired angle is reached
-    while (abs(left_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN) &&
-               abs(right_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN )) {
-    	chprintf((BaseSequentialStream *)&SD3, "dans while \r\n ");
-    	chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
-	};
-    halt();
-}
+/**************************END PUBLIC FUNCTIONS***********************************/
