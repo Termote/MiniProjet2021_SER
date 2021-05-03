@@ -8,6 +8,7 @@
         "limits": "c",
         "memory": "c",
         "new": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "stdlib.h": "c"
     }
 }
