@@ -38,7 +38,7 @@
 
 /***************************GLOBAL VARIABLES************************************/
 
-proximity_msg_t prox_values;                        // Proximity sensor information
+proximity_msg_t* prox_values;                       // Proximity sensor information
 
 struct movement{                                    // Struct with all information about the e-puck movement state and general information
 
@@ -95,15 +95,15 @@ void analyse_angle(int* angle){                     // Transforms an angle from 
 
 uint8_t status_on_front(){                          //Returns TRUE if there is an object detected on front
 
-    if (prox_values.delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
-        || prox_values.delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
+    if (*prox_values.delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
+        || *prox_values.delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
 
     else return FALSE;
 }
 
 uint8_t status_on_side(){                           //Returns TRUE if there is an object detected on object side
 
-    if (prox_values.delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
+    if (*prox_values.delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
 	
     else return FALSE;
 }
@@ -139,7 +139,7 @@ void init_obstacle_tection(){                       // Sets obstacles after a tu
 }
 
 void set_turning_direction() {                      // Finds inicial turning direction, looks for a "shorter" side, or a slope
-    if(prox_values.delta[FRONT_LEFT_SENSOR] < prox_values.delta[FRONT_RIGHT_SENSOR]) {
+    if(*prox_values.delta[FRONT_LEFT_SENSOR] < *prox_values.delta[FRONT_RIGHT_SENSOR]) {
         movement_info.turn_direction = LEFT; 
         movement_info.obstacle_avoiding_side = LEFT;
         movement_info.front_sensor = FRONT_FRONT_RIGHT_SENSOR;
@@ -197,8 +197,8 @@ void turn_to(int angle){                            // Turns the e-puck a derire
 /*************************END INTERNAL FUNCTIONS**********************************/
 
 /****************************PUBLIC FUNCTIONS*************************************/
-void movement_init(){                               //Initiates some values and turns to selected direction.
-
+void movement_init(proximity_msg_t* proximity){                               //Initiates some values and turns to selected direction.
+    proximity_msg_t* prox_values = proximity;
     movement_info.orientation = 0;
 
     int selector_angle = 0;
