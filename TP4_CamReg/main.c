@@ -99,7 +99,7 @@ int main(void)
     pi_regulator_start();
     process_image_start();
 	
-   movement_init();
+   movement_init(&prox_values);
 
     /* Infinite loop. */
     while (1) {
