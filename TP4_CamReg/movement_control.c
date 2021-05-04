@@ -7,7 +7,7 @@
 #include <math.h>
 #include "selector.h"
 #include "chprintf.h"
-#include "sensors/proximity.h"
+
 
 #define NSTEP_ONE_TURN              1000    // number of step for 1 turn of the motor
 #define WHEEL_PERIMETER             13      // cm
@@ -95,15 +95,15 @@ void analyse_angle(int* angle){                     // Transforms an angle from 
 
 uint8_t status_on_front(){                          //Returns TRUE if there is an object detected on front
 
-    if (*prox_values.delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
-        || *prox_values.delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
+    if (prox_values->delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
+        || prox_values->delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
 
     else return FALSE;
 }
 
 uint8_t status_on_side(){                           //Returns TRUE if there is an object detected on object side
 
-    if (*prox_values.delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
+    if (prox_values->delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
 	
     else return FALSE;
 }
@@ -139,7 +139,7 @@ void init_obstacle_tection(){                       // Sets obstacles after a tu
 }
 
 void set_turning_direction() {                      // Finds inicial turning direction, looks for a "shorter" side, or a slope
-    if(*prox_values.delta[FRONT_LEFT_SENSOR] < *prox_values.delta[FRONT_RIGHT_SENSOR]) {
+    if(prox_values->delta[FRONT_LEFT_SENSOR] < prox_values->delta[FRONT_RIGHT_SENSOR]) {
         movement_info.turn_direction = LEFT; 
         movement_info.obstacle_avoiding_side = LEFT;
         movement_info.front_sensor = FRONT_FRONT_RIGHT_SENSOR;
@@ -178,8 +178,6 @@ void turn_to(int angle){                            // Turns the e-puck a derire
     left_motor_set_speed(-movement_info.turn_direction*MOTOR_SPEED_LIMIT);
     right_motor_set_speed(movement_info.turn_direction*MOTOR_SPEED_LIMIT);
 
-    chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
-
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
@@ -198,7 +196,7 @@ void turn_to(int angle){                            // Turns the e-puck a derire
 
 /****************************PUBLIC FUNCTIONS*************************************/
 void movement_init(proximity_msg_t* proximity){                               //Initiates some values and turns to selected direction.
-    proximity_msg_t* prox_values = proximity;
+    prox_values = proximity;
     movement_info.orientation = 0;
 
     int selector_angle = 0;
