@@ -33,8 +33,8 @@
 #define TRUE                        1       
 #define FALSE                       0     
 
-#define DETECTION_DISTANCE   100            // Desired sensor distance detection, in delta
-#define ERROR_TOLERANCE      40             // Distance error range,  in delta
+#define DETECTION_DISTANCE          100     // Desired sensor distance detection, in delta
+#define ERROR_TOLERANCE             40      // Distance error range,  in delta
 
 /***************************GLOBAL VARIABLES************************************/
 
@@ -116,7 +116,7 @@ void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_d
     go_forward();
     left_motor_set_pos(0);
 
-    while (!object_detection() && *deviation_distance - left_motor_get_pos())
+    while (!object_detection() && (*deviation_distance - left_motor_get_pos() || movement_info.orientation == CONVERGING))
     {
     }
     halt();
