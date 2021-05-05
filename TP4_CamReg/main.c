@@ -68,8 +68,6 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
-
-
 int main(void)
 {
 
@@ -98,29 +96,41 @@ int main(void)
     //stars the threads for the pi regulator and the processing of the image
     pi_regulator_start();
     process_image_start();
-	
-   movement_init(&prox_values);
 
     /* Infinite loop. */
     while (1) {
 
-    	messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
+        movement_init(&prox_values);
+        messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
 
+        while(get_target_reached() == FALSE){
+            
+            if(//obstacle detected) 
+            {
+                set_avoiding_obstacle(TRUE);
+                //avoid obstacle
+                set_avoiding_obstacle(FALSE);
+            }
+            /*
+            for (uint8_t i = 0; i < sizeof(prox_values.ambient)/sizeof(prox_values.ambient[0]); i++) {
+                        //for (uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; i++) {
+                            chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.ambient[i]);
+                            chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.reflected[i]);
+                            chprintf((BaseSequentialStream *)&SD3, "%4d", prox_values.delta[i]);
+                            chprintf((BaseSequentialStream *)&SD3, "\r\n");
+            }
+                chprintf((BaseSequentialStream *)&SD3, "\r\n");
 
-    	for (uint8_t i = 0; i < sizeof(prox_values.ambient)/sizeof(prox_values.ambient[0]); i++) {
-					//for (uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; i++) {
-						chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.ambient[i]);
-						chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.reflected[i]);
-						chprintf((BaseSequentialStream *)&SD3, "%4d", prox_values.delta[i]);
-						chprintf((BaseSequentialStream *)&SD3, "\r\n");
-		}
-			chprintf((BaseSequentialStream *)&SD3, "\r\n");
-
-	//waits 3 second
-	chThdSleepMilliseconds(3000);
+        //waits 3 second
+        */
+        }
+        //start_light_choreography();
+        while (//detect change in selector){
+            chThdSleepMilliseconds(500);
+        }
+	    chThdSleepMilliseconds(2000);
     }
 }
-
 
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
