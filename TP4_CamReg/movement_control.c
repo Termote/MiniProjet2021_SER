@@ -97,7 +97,6 @@ uint8_t status_on_front(){                          //Returns TRUE if there is a
 
     if (prox_values->delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
         || prox_values->delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
-
     else return FALSE;
 }
 
@@ -121,9 +120,13 @@ void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_d
     }
     halt();
     if(!movement_info.obstacle_detection[1]) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
-
     *update_distance += direction_coefficient*left_motor_get_pos();
+    
     find_turning_side();
+    turn_to(-movement_info.turn_direction*STANDARD_TURN_ANGLE);
+    update_orientation();
+    if(!movement_info.obstacle_detection[1]) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
+
 }
 
 void find_turning_side (){                          // Determines witch side to turn to, from proximity sensors
@@ -195,7 +198,7 @@ void turn_to(int angle){                            // Turns the e-puck a derire
 /*************************END INTERNAL FUNCTIONS**********************************/
 
 /****************************PUBLIC FUNCTIONS*************************************/
-void movement_init(proximity_msg_t* proximity){                               //Initiates some values and turns to selected direction.
+void movement_init(proximity_msg_t* proximity){     //Initiates some values and turns to selected direction.
     prox_values = proximity;
     movement_info.orientation = 0;
 
@@ -207,12 +210,12 @@ void movement_init(proximity_msg_t* proximity){                               //
 
 uint8_t object_detection(){                         //Returns TRUE if there is a change on proximity sensors
 
-    if(status_on_front() != movement_info.obstacle_detection[0]) {
-        movement_info.obstacle_detection[0] = !movement_info.obstacle_detection[0];
+    if(status_on_front() == TRUE) {
+        movement_info.obstacle_detection[0] = TRUE;
         return TRUE;
     }
-    else if(status_on_side()!= movement_info.obstacle_detection[1]) {
-        movement_info.obstacle_detection[1] = !movement_info.obstacle_detection[1];
+    else if(status_on_side() == FALSE && movement_info.turn_direction) {
+        movement_info.obstacle_detection[1] = FALSE;
         return TRUE;
     }
     return FALSE;
@@ -237,26 +240,18 @@ void avoid_obstacle(){                              // Function used to avoid an
         switch(movement_info.orientation) {
             case FORWARD:
                 advance_until_interest_point(&forward_distance, &deviation_distance, FURTHER);
-                turn_to(-movement_info.turn_direction*STANDARD_TURN_ANGLE);
-                update_orientation();
                 break;
 
             case BACKWARD:
                 advance_until_interest_point(&forward_distance, &deviation_distance, CLOSER);
-                turn_to(-movement_info.turn_direction*STANDARD_TURN_ANGLE);
-                update_orientation();
                 break;
             
             case DIVERGING:                         //Diverging from main path
                 advance_until_interest_point(&deviation_distance, &deviation_distance, FURTHER);
-                turn_to(-movement_info.turn_direction*STANDARD_TURN_ANGLE);
-                update_orientation();
                 break;
             
             case CONVERGING:                        //Diverging from main path
                 advance_until_interest_point(&deviation_distance, &deviation_distance, CLOSER);
-                turn_to(-movement_info.turn_direction*STANDARD_TURN_ANGLE);
-                update_orientation();
                 break;
         };
         //If the e-puck is back on the main track and we advanced at least a liitle bit forward, the the obstacle is avoided

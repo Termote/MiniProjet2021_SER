@@ -8,9 +8,12 @@
 
 #include <process_image.h>
 
-
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
+
+uint8_t avoiding_obstacle = FALSE;
+uint8_t target_reached = FALSE;
+uint8_t line_not_found = FALSE;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -22,7 +25,7 @@ static BSEMAPHORE_DECL(image_ready_sem, TRUE);
 uint16_t extract_line_width(uint8_t *buffer){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
-	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
+	uint8_t stop = FALSE, wrong_line = FALSE; 
 	uint32_t mean = 0;
 
 	static uint16_t last_width = PXTOCM/GOAL_DISTANCE;
@@ -43,21 +46,21 @@ uint16_t extract_line_width(uint8_t *buffer){
 		    if(buffer[i] > mean && buffer[i+WIDTH_SLOPE] < mean)
 		    {
 		        begin = i;
-		        stop = 1;
+		        stop = TRUE;
 		    }
 		    i++;
 		}
 		//if a begin was found, search for an end
 		if (i < (IMAGE_BUFFER_SIZE - WIDTH_SLOPE) && begin)
 		{
-		    stop = 0;
+		    stop = FALSE;
 
 		    while(stop == 0 && i < IMAGE_BUFFER_SIZE)
 		    {
 		        if(buffer[i] > mean && buffer[i-WIDTH_SLOPE] < mean)
 		        {
 		            end = i;
-		            stop = 1;
+		            stop = TRUE;
 		        }
 		        i++;
 		    }
@@ -69,7 +72,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		}
 		else//if no begin was found
 		{
-		    line_not_found = 1;
+		    line_not_found = TRUE;
 		}
 
 		//if a line too small has been detected, continues the search
@@ -77,8 +80,8 @@ uint16_t extract_line_width(uint8_t *buffer){
 			i = end;
 			begin = 0;
 			end = 0;
-			stop = 0;
-			wrong_line = 1;
+			stop = FALSE;
+			wrong_line = TRUE;
 		}
 	}while(wrong_line);
 
@@ -112,12 +115,15 @@ static THD_FUNCTION(CaptureImage, arg) {
 	dcmi_prepare();
 
     while(1){
-        //starts a capture
-		dcmi_capture_start();
-		//waits for the capture to be done
-		wait_image_ready();
-		//signals an image has been captured
-		chBSemSignal(&image_ready_sem);
+		if(get_avoiding_obstacle()) chThdSleepMilliseconds(20);						//MAGIC NUMBER !!!!!!!!!!!!!!!!
+		else{
+			//starts a capture
+			dcmi_capture_start();
+			//waits for the capture to be done
+			wait_image_ready();
+			//signals an image has been captured
+			chBSemSignal(&image_ready_sem);
+		}
     }
 }
 
@@ -175,4 +181,24 @@ uint16_t get_line_position(void){
 void process_image_start(void){
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
 	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
+}
+
+void set_target_reached(uint8_t value){
+    target_reached = value;
+}
+
+uint8_t get_avoiding_obstacle (void){
+    return avoid_obstacle;
+}
+
+uint8_t get_target_reached (void){
+    return target_reached;
+}
+
+uint8_t get_line_not_found (void){
+    return line_not_found;
+}
+
+void set_avoiding_obstacle (uint8_t value){
+    avoid_obstacl = value;
 }

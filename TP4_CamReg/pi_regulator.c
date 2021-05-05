@@ -58,18 +58,29 @@ static THD_FUNCTION(PiRegulator, arg) {
         //computes the speed to give to the motors
         //distance_cm is modified by the image processing thread
         speed = pi_regulator(get_distance_cm(), GOAL_DISTANCE);
-        //computes a correction factor to let the robot rotate to be in front of the line
-        speed_correction = (get_line_position() - (IMAGE_BUFFER_SIZE/2));
 
-        //if the line is nearly in front of the camera, don't rotate
-        if(abs(speed_correction) < ROTATION_THRESHOLD){
-        	speed_correction = 0;
-        }
+		if(get_line_not_found()){
+			speed = MOTOR_SPEED_LIMIT;
+			speed_correction = 0;
+		}
+		else {
+			//computes a correction factor to let the robot rotate to be in front of the line
+			speed_correction = (get_line_position() - (IMAGE_BUFFER_SIZE/2));
 
-        //applies the speed from the PI regulator and the correction for the rotation
-		right_motor_set_speed(speed - ROTATION_COEFF * speed_correction);
-		left_motor_set_speed(speed + ROTATION_COEFF * speed_correction);
+			//if the line is nearly in front of the camera, don't rotate
+			if(abs(speed_correction) < ROTATION_THRESHOLD){
+				speed_correction = 0;
+			}
+		}
 
+		if(speed == 0) set_target_reached(TRUE);
+
+		if(get_avoiding_obstacle() == FALSE){
+
+			//applies the speed from the PI regulator and the correction for the rotation
+			right_motor_set_speed(speed - ROTATION_COEFF * speed_correction);
+			left_motor_set_speed(speed + ROTATION_COEFF * speed_correction);
+		}
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
