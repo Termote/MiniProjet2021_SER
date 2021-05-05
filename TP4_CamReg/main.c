@@ -44,17 +44,18 @@
 #include <movement_control.h>
 #include <pi_regulator.h>
 #include <process_image.h>
+#include <control_lights.h>
+
+#define DELTA 250
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
-void SendUint8ToComputer(uint8_t* data, uint16_t size) 
-{
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
-}
+
+
+static THD_WORKING_AREA(dodge_thd_wa, 2048);
+
 
 static void serial_start(void)
 {
@@ -68,6 +69,87 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
+static THD_FUNCTION(dodge_thd, arg)
+{
+    (void) arg;
+    chRegSetThreadName(__FUNCTION__);
+    systime_t time;
+
+
+    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
+    proximity_msg_t prox_values;
+    int16_t leftSpeed = 0, rightSpeed = 0;
+    unsigned int left_wall = 0;
+    unsigned int right_wall = 0;
+    unsigned int left_wall_counter = 0;  // pas utiliser, peut peut etre servir jsp
+    unsigned int right_wall_counter = 0; // pas utiliser, peut peut etre servir jsp
+    unsigned int pos_counter = 0;        // pas utiliser, peut peut etre servir jsp
+
+
+    while (1) {
+    time = chVTGetSystemTime();
+    messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
+
+
+	leftSpeed = MOTOR_SPEED_LIMIT - prox_values.delta[0]*2 - prox_values.delta[1];
+	rightSpeed = MOTOR_SPEED_LIMIT - prox_values.delta[7]*2 - prox_values.delta[6];
+	right_motor_set_speed(rightSpeed);
+	left_motor_set_speed(leftSpeed);
+
+	if (prox_values.delta[2] > DELTA ) {
+		right_wall = 1;
+	}
+		else if (prox_values.delta[5] > DELTA ) {
+			left_wall = 1;
+		}
+			else if ((prox_values.delta[2] < DELTA) && (right_wall == 1)) {
+
+				pos_counter += abs(left_motor_get_pos());
+
+			    left_motor_set_pos(0);
+			    right_motor_set_pos(0);
+
+			    float temp = 90;
+
+				leftSpeed = MOTOR_SPEED_LIMIT ;
+				rightSpeed = -MOTOR_SPEED_LIMIT/2;
+				right_motor_set_speed(rightSpeed);
+				left_motor_set_speed(leftSpeed);
+
+			    // Turns until the desired angle is reached
+			    while (abs(left_motor_get_pos()) < abs((temp/360)* 500) &&
+			               abs(right_motor_get_pos()) < abs((temp/360)* 500 )) {
+				};
+
+			    right_wall = 0;
+			    ++right_wall_counter;
+
+			}
+				else if ((prox_values.delta[5] < DELTA) && (left_wall == 1)) {
+					left_motor_set_pos(0);
+					right_motor_set_pos(0);
+
+					float temp = 90;
+
+					leftSpeed = -MOTOR_SPEED_LIMIT/2;
+					rightSpeed = MOTOR_SPEED_LIMIT;
+					right_motor_set_speed(rightSpeed);
+					left_motor_set_speed(leftSpeed);
+
+					// Turns until the desired angle is reached
+					while (abs(left_motor_get_pos()) < abs((temp/360)* 500) &&
+							   abs(right_motor_get_pos()) < abs((temp/360)* 500 )) {
+					};
+
+
+					left_wall = 0;
+					++left_wall_counter;
+				}
+
+
+	chThdSleepUntilWindowed(time, time + MS2ST(10)); // refresh AT 100 HZ
+    }
+}
 int main(void)
 {
 
@@ -76,7 +158,7 @@ int main(void)
     mpu_init();
 
     /** Inits the Inter Process Communication bus. */
-    messagebus_init(&bus, &bus_lock, &bus_condvar);
+    	messagebus_init(&bus, &bus_lock, &bus_condvar);
 
     //starts the serial communication
     serial_start();
@@ -84,51 +166,31 @@ int main(void)
     usb_start();
     //starts the camera
     dcmi_start();
-    po8030_start();
-    //inits the motors
-    motors_init();
-    //start proximity sensors
-    proximity_start();
+	po8030_start();
+	//inits the motors
+	motors_init();
+	//start proximity sensors
+	proximity_start();
+	// start light
+	//lights_start();
 
-    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
-    proximity_msg_t prox_values;
 
-    //stars the threads for the pi regulator and the processing of the image
-    pi_regulator_start();
-    process_image_start();
+	//stars the threads for the pi regulator and the processing of the image
+	//pi_regulator_start();
+	//process_image_start();
+
+	//movement_init();
+
+	chThdCreateStatic(dodge_thd_wa, sizeof(dodge_thd_wa), NORMALPRIO, dodge_thd, NULL);
+
 
     /* Infinite loop. */
     while (1) {
 
-        movement_init(&prox_values);
-        messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
+    	chprintf((BaseSequentialStream *)&SD3, "infinity   \r\n");
 
-        while(get_target_reached() == FALSE){
-            
-            if(//obstacle detected) 
-            {
-                set_avoiding_obstacle(TRUE);
-                //avoid obstacle
-                set_avoiding_obstacle(FALSE);
-            }
-            /*
-            for (uint8_t i = 0; i < sizeof(prox_values.ambient)/sizeof(prox_values.ambient[0]); i++) {
-                        //for (uint8_t i = 0; i < PROXIMITY_NB_CHANNELS; i++) {
-                            chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.ambient[i]);
-                            chprintf((BaseSequentialStream *)&SD3, "%4d,", prox_values.reflected[i]);
-                            chprintf((BaseSequentialStream *)&SD3, "%4d", prox_values.delta[i]);
-                            chprintf((BaseSequentialStream *)&SD3, "\r\n");
-            }
-                chprintf((BaseSequentialStream *)&SD3, "\r\n");
-
-        //waits 3 second
-        */
-        }
-        //start_light_choreography();
-        while (//detect change in selector){
-            chThdSleepMilliseconds(500);
-        }
-	    chThdSleepMilliseconds(2000);
+	//waits 1 second
+	chThdSleepMilliseconds(1000);
     }
 }
 
