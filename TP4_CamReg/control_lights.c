@@ -32,9 +32,9 @@ static THD_FUNCTION(ThdLights, arg) {
 
         time = chVTGetSystemTime();
 
-        toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY)
+        toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
         chThdSleepMilliseconds(50);
-        toggle_rgb_led(LED4, BLUE_LED ,LED_INTENSITY)
+        toggle_rgb_led(LED4, BLUE_LED ,LED_INTENSITY);
 
         while (chVTGetSystemTime() < time + MS2ST(CHOREOGRAPHY_LENGTH)){
 
