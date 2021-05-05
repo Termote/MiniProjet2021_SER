@@ -1,3 +1,5 @@
+#include "sensors/proximity.h"
+
 #ifndef MOOVEMENT_CONTROL_H
 #define MOOVEMENT_CONTROL_H
 typedef unsigned char   uint8_t;
