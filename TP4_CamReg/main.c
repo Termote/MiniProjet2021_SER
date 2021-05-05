@@ -99,7 +99,7 @@ int main(void)
     pi_regulator_start();
     process_image_start();
 	
-   movement_init();
+   movement_init(&prox_values);
 
     /* Infinite loop. */
     while (1) {
@@ -115,7 +115,6 @@ int main(void)
 						chprintf((BaseSequentialStream *)&SD3, "\r\n");
 		}
 			chprintf((BaseSequentialStream *)&SD3, "\r\n");
-
 
 	//waits 3 second
 	chThdSleepMilliseconds(3000);

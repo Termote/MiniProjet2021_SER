@@ -155,7 +155,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			distance_cm = PXTOCM/lineWidth;
 		}
 
-		if(send_to_computer){
+		if(send_to_computer){								//Je pense qu'on peut retirer cette fonction
 			//sends to the computer the image
 			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
