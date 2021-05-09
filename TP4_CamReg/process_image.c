@@ -146,11 +146,17 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//gets the pointer to the array filled with the last image in RGB565    
 		img_buff_ptr = dcmi_get_last_image_ptr();
 
-		//Extracts only the red pixels
-		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
-			//extracts first 5bits of the first byte
-			//takes nothing from the second byte
-			image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8;
+		// extract blue and green
+
+		for(uint16_t i = 0; i < (IMAGE_BUFFER_SIZE*2) ; i++){
+
+			green_values = (img_buff_ptr[i] & 0x07) << 3;
+			blue_values = (img_buff_ptr[i] & 0x00);
+
+			green_values = (green_values | ((img_buff_ptr[++i] & 0xE0) >> 5));
+			blue_values = (img_buff_ptr[i] & 0x1F );
+
+			image[i/2] = green_values + blue_values;
 		}
 
 		//search for a line in the image and gets its width in pixels
