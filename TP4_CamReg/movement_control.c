@@ -94,15 +94,16 @@ void analyse_angle(int* angle){                     // Transforms an angle from 
 }
 
 uint8_t status_on_front(){                          //Returns TRUE if there is an object detected on front
+    chprintf((BaseSequentialStream *)&SD3, "Analysing front, delta at :  %d \r\n",get_prox(movement_info.front_sensor));
 
-    if (prox_values->delta[movement_info.front_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE
-        || prox_values->delta[movement_info.front_sensor-movement_info.obstacle_avoiding_side] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
+    if (get_prox(movement_info.front_sensor) > DETECTION_DISTANCE - ERROR_TOLERANCE
+        || get_prox(movement_info.front_sensor-movement_info.obstacle_avoiding_side) > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
     else return FALSE;
 }
 
 uint8_t status_on_side(){                           //Returns TRUE if there is an object detected on object side
 
-    if (prox_values->delta[movement_info.side_sensor] > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
+    if (get_prox(movement_info.side_sensor) > DETECTION_DISTANCE - ERROR_TOLERANCE) return TRUE;
 	
     else return FALSE;
 }
@@ -114,18 +115,22 @@ void advance_until_interest_point(int32_t* update_distance, int32_t* deviation_d
     
     go_forward();
     left_motor_set_pos(0);
-
-    while (!object_detection() && (*deviation_distance - left_motor_get_pos() || movement_info.orientation == CONVERGING))
+    
+    chprintf((BaseSequentialStream *)&SD3, "Forward distance now  %d \r\n",forward_distance);
+    while (object_detection() == 0 && (*deviation_distance - left_motor_get_pos() || movement_info.orientation == CONVERGING))
     {
+        chprintf((BaseSequentialStream *)&SD3, "Advancing :  %d \r\n", left_motor_get_pos());
     }
     halt();
-    if(!movement_info.obstacle_detection[1]) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
+    chprintf((BaseSequentialStream *)&SD3, "Interest point reached \r\n");
+
+    if(movement_info.obstacle_detection[1] == 0) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
     *update_distance += direction_coefficient*left_motor_get_pos();
     
     find_turning_side();
     turn_to(-movement_info.turn_direction*STANDARD_TURN_ANGLE);
     update_orientation();
-    if(!movement_info.obstacle_detection[1]) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
+    if(movement_info.obstacle_detection[1] == 0) advance_distance(EPUCK_RADIUS + delta_to_cm(DETECTION_DISTANCE));
 
 }
 
@@ -134,6 +139,7 @@ void find_turning_side (){                          // Determines witch side to 
     if(movement_info.obstacle_detection[0] && movement_info.orientation == CONVERGING) movement_info.turn_direction = CENTER;
     else if(movement_info.obstacle_detection[0]) movement_info.turn_direction = RIGHT;
     else movement_info.turn_direction = LEFT;
+    chprintf((BaseSequentialStream *)&SD3, "New side now : %d \r\n", movement_info.turn_direction);
 }
 
 void init_obstacle_tection(){                       // Sets obstacles after a turn
@@ -142,7 +148,8 @@ void init_obstacle_tection(){                       // Sets obstacles after a tu
 }
 
 void set_turning_direction() {                      // Finds inicial turning direction, looks for a "shorter" side, or a slope
-    if(prox_values->delta[FRONT_LEFT_SENSOR] < prox_values->delta[FRONT_RIGHT_SENSOR]) {
+
+    if(get_prox(FRONT_LEFT_SENSOR) < det_prox(FRONT_RIGHT_SENSOR)) {
         movement_info.turn_direction = LEFT; 
         movement_info.obstacle_avoiding_side = LEFT;
         movement_info.front_sensor = FRONT_FRONT_RIGHT_SENSOR;
@@ -172,6 +179,8 @@ void halt(){                                        // Stops the motors
     movement_info.state = STOPED;
     left_motor_set_speed(0);
     right_motor_set_speed(0);
+    
+    chprintf((BaseSequentialStream *)&SD3, "Stopping\r\n");
 }
 
 void turn_to(int angle){                            // Turns the e-puck a derired angle
@@ -184,13 +193,11 @@ void turn_to(int angle){                            // Turns the e-puck a derire
     left_motor_set_pos(0);
     right_motor_set_pos(0);
 
-    float temp = angle;         //à faire en plus clean !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    float temp = angle;         //à faire en plus clean 
 
     // Turns until the desired angle is reached
     while (abs(left_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN) &&
                abs(right_motor_get_pos()) < abs((temp/FULL_PERIMETER_DEG)* NSTEP_ONE_TURN )) {
-    	chprintf((BaseSequentialStream *)&SD3, "dans while \r\n ");
-    	chprintf((BaseSequentialStream *)&SD3, "pos motor %d ",right_motor_get_pos());
 	};
     halt();
 }
@@ -210,12 +217,18 @@ void movement_init(proximity_msg_t* proximity){     //Initiates some values and 
 
 uint8_t object_detection(){                         //Returns TRUE if there is a change on proximity sensors
 
+    
+    chprintf((BaseSequentialStream *)&SD3, "Status on front : %d \r\n",status_on_front()); 
+    chprintf((BaseSequentialStream *)&SD3, "Status on side : %d \r\n",status_on_side());
+
     if(status_on_front() == TRUE) {
         movement_info.obstacle_detection[0] = TRUE;
+    	chprintf((BaseSequentialStream *)&SD3, "Something on front \r\n");
         return TRUE;
     }
     else if(status_on_side() == FALSE && movement_info.turn_direction) {
         movement_info.obstacle_detection[1] = FALSE;
+    	chprintf((BaseSequentialStream *)&SD3, "Something on side \r\n");
         return TRUE;
     }
     return FALSE;
@@ -233,25 +246,40 @@ void avoid_obstacle(){                              // Function used to avoid an
     turn_to(movement_info.turn_direction*STANDARD_TURN_ANGLE);
     movement_info.orientation = DIVERGING;
 
-    while (!movement_info.on_right_track)           //Each loop is a moove forward and turn, until e-puck is back on main path
+    while (movement_info.on_right_track == 0)           //Each loop is a moove forward and turn, until e-puck is back on main path
     { 
         init_obstacle_tection();
 
         switch(movement_info.orientation) {
             case FORWARD:
+                chprintf((BaseSequentialStream *)&SD3, "Case FORWARD \r\n");
                 advance_until_interest_point(&forward_distance, &deviation_distance, FURTHER);
+                chprintf((BaseSequentialStream *)&SD3, "Forward distance now  %d \r\n",forward_distance);
+                chprintf((BaseSequentialStream *)&SD3, "Deviation distance now  %d \r\n",deviation_distance);
                 break;
 
             case BACKWARD:
+            
+                chprintf((BaseSequentialStream *)&SD3, "Case BACKWARD \r\n");
                 advance_until_interest_point(&forward_distance, &deviation_distance, CLOSER);
+                chprintf((BaseSequentialStream *)&SD3, "Forward distance now  %d \r\n",forward_distance);
+                chprintf((BaseSequentialStream *)&SD3, "Deviation distance now  %d \r\n",deviation_distance);
                 break;
             
             case DIVERGING:                         //Diverging from main path
+                
+                chprintf((BaseSequentialStream *)&SD3, "Case DIVERGING \r\n");
                 advance_until_interest_point(&deviation_distance, &deviation_distance, FURTHER);
+                chprintf((BaseSequentialStream *)&SD3, "Forward distance now  %d \r\n",forward_distance);
+                chprintf((BaseSequentialStream *)&SD3, "Deviation distance now  %d \r\n",deviation_distance);
                 break;
             
             case CONVERGING:                        //Diverging from main path
+            
+                chprintf((BaseSequentialStream *)&SD3, "Case CONVERGING \r\n");
                 advance_until_interest_point(&deviation_distance, &deviation_distance, CLOSER);
+                chprintf((BaseSequentialStream *)&SD3, "Forward distance now  %d \r\n",forward_distance);
+                chprintf((BaseSequentialStream *)&SD3, "Deviation distance now  %d \r\n",deviation_distance);
                 break;
         };
         //If the e-puck is back on the main track and we advanced at least a liitle bit forward, the the obstacle is avoided
