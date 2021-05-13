@@ -1,7 +1,7 @@
 #include "sensors/proximity.h"
 
-#ifndef MOOVEMENT_CONTROL_H
-#define MOOVEMENT_CONTROL_H
+#ifndef OBSTACLE_AVOID
+#define OBSTACLE_AVOID
 typedef unsigned char   uint8_t;
 
 void movement_init(proximity_msg_t* proximity;);

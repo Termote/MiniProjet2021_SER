@@ -41,7 +41,7 @@
 #include "communication.h"
 #include "uc_usage.h"
 
-#include <movement_control.h>
+#include <obstacle_avoid.h>
 #include <pi_regulator.h>
 #include <process_image.h>
 #include <control_lights.h>

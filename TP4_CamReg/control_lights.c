@@ -12,6 +12,7 @@
 
 void start_light_choreography(void){
         systime_t time = chVTGetSystemTime();
+        spi_comm_start();
 
         toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
         chThdSleepMilliseconds(50);
