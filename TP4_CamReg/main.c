@@ -110,12 +110,8 @@ int main(void)
 	//process_image_start();
 
 	movement_init();
-<<<<<<< HEAD
 	test_camra_start();
 	movement_control_start();
-=======
-	avoid_obstacle();
->>>>>>> 1d0042b53a85799bc740ee3f0554e1f2c2e6ecdb
 
 
     /* Infinite loop. */
