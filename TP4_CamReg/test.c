@@ -3,19 +3,18 @@
 #include <string.h>
 #include "movement_control.h"
 
-int main() {
-    //init motor, camera and sensors + other modules
-    //Put all threads to sleep except motor
-    movement_init();
-    printf("Aligned\n");
-    //start camera and sensor threads
-    go_forward();
-    while (object_detection())
+/*int main() {
+  enum {
+        NORTH = 0,
+        EAST = 1,s
+        SOUTH = 2,
+        WEST = 3
+    } orientation;
+    while (orientation < 8)
     {
-        avoid_obstacle(0);
-        printf("Obstacle avoided \n");
+        orientation += 1;
+        printf("%d \n", orientation);
     }
-
-   printf("");
    return 0;
 }
+*/

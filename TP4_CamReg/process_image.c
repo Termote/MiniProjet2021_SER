@@ -105,6 +105,9 @@ static THD_FUNCTION(CaptureImage, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
+
+
+
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
 	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
 	dcmi_enable_double_buffering();
@@ -128,9 +131,14 @@ static THD_FUNCTION(ProcessImage, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
+
+
+
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint16_t lineWidth = 0;
+	uint8_t blue_values = 0;
+	uint8_t green_values = 0;
 
 	bool send_to_computer = true;
 
@@ -140,12 +148,18 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//gets the pointer to the array filled with the last image in RGB565    
 		img_buff_ptr = dcmi_get_last_image_ptr();
 
-		//Extracts only the red pixels
-		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
-			//extracts first 5bits of the first byte
-			//takes nothing from the second byte
-			image[i/2] = (uint8_t)img_buff_ptr[i]&0xF8;
-		}
+		// extract blue and green
+
+		for(uint16_t i = 0; i < (IMAGE_BUFFER_SIZE*2) ; i++){
+
+			green_values = (img_buff_ptr[i] & 0x07) << 3;
+			blue_values = (img_buff_ptr[i] & 0x00);
+
+			green_values = (green_values | ((img_buff_ptr[++i] & 0xE0) >> 5));
+			blue_values = (img_buff_ptr[i] & 0x1F );
+
+			image[i/2] = green_values + blue_values;
+					}
 
 		//search for a line in the image and gets its width in pixels
 		lineWidth = extract_line_width(image);
@@ -157,7 +171,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		if(send_to_computer){
 			//sends to the computer the image
-			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
 		//invert the bool
 		send_to_computer = !send_to_computer;
