@@ -132,8 +132,6 @@ static THD_FUNCTION(ProcessImage, arg) {
     (void)arg;
 
 
-
-
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint16_t lineWidth = 0;

@@ -7,7 +7,7 @@
 #include <leds.h>
 #include <control_lights.h>
 
-#define CHOREOGRAPHY_LENGTH     5000 //ms
+#define CHOREOGRAPHY_LENGTH     500000 //ms
 #define LED_INTENSITY           100
 
 //semaphore
@@ -25,41 +25,38 @@ static THD_FUNCTION(ThdLights, arg) {
     (void)arg;
 
     systime_t time;
+    spi_comm_start();
 
     while(1){
 
-
-    	//toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
     	//waits until the start signal
-       // chBSemWait(&lights_start_sem);
+       //chBSemWait(&lights_start_sem);
+
+
+        toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
+        chThdSleepMilliseconds(500);
+        toggle_rgb_led(LED4, BLUE_LED ,LED_INTENSITY);
 
         time = chVTGetSystemTime();
 
-        set_rgb_led(0, 0, 0, 10);
-
-
-        toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
-        chThdSleepMilliseconds(50);
-        toggle_rgb_led(LED4, BLUE_LED ,LED_INTENSITY);
-
         while (chVTGetSystemTime() < time + MS2ST(CHOREOGRAPHY_LENGTH)){
 
-            chThdSleepMilliseconds(50);
+            chThdSleepMilliseconds(500);
             toggle_rgb_led(LED6, BLUE_LED ,LED_INTENSITY);
             toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
-            chThdSleepMilliseconds(50);
+            chThdSleepMilliseconds(500);
             toggle_rgb_led(LED8, BLUE_LED ,LED_INTENSITY);
             toggle_rgb_led(LED4, BLUE_LED ,LED_INTENSITY);
-            chThdSleepMilliseconds(50);
+            chThdSleepMilliseconds(500);
             toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
             toggle_rgb_led(LED6, BLUE_LED ,LED_INTENSITY);
-            chThdSleepMilliseconds(50);
+            chThdSleepMilliseconds(500);
             toggle_rgb_led(LED4, BLUE_LED ,LED_INTENSITY);
             toggle_rgb_led(LED8, BLUE_LED ,LED_INTENSITY);
         }
-        chThdSleepMilliseconds(50);
+        chThdSleepMilliseconds(500);
         toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
-        void clear_leds(void);
+        clear_leds();
 
         chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
