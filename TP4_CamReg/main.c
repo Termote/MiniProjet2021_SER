@@ -46,7 +46,7 @@
 #include <process_image.h>
 #include <control_lights.h>
 
-#define DELTA 250
+#define DELTA 200		// a mettre dans le .h avec d'autres truc comme le 60 etc magic nb
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -54,7 +54,12 @@ CONDVAR_DECL(bus_condvar);
 
 
 
-static THD_WORKING_AREA(dodge_thd_wa, 2048);
+void SendUint8ToComputer(uint8_t* data, uint16_t size)
+{
+	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
+	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
+	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
+}
 
 
 static void serial_start(void)
@@ -69,87 +74,6 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
-static THD_FUNCTION(dodge_thd, arg)
-{
-    (void) arg;
-    chRegSetThreadName(__FUNCTION__);
-    systime_t time;
-
-
-    messagebus_topic_t *prox_topic = messagebus_find_topic_blocking(&bus, "/proximity");
-    proximity_msg_t prox_values;
-    int16_t leftSpeed = 0, rightSpeed = 0;
-    unsigned int left_wall = 0;
-    unsigned int right_wall = 0;
-    unsigned int left_wall_counter = 0;  // pas utiliser, peut peut etre servir jsp
-    unsigned int right_wall_counter = 0; // pas utiliser, peut peut etre servir jsp
-    unsigned int pos_counter = 0;        // pas utiliser, peut peut etre servir jsp
-
-
-    while (1) {
-    time = chVTGetSystemTime();
-    messagebus_topic_wait(prox_topic, &prox_values, sizeof(prox_values));
-
-
-	leftSpeed = MOTOR_SPEED_LIMIT - prox_values.delta[0]*2 - prox_values.delta[1];
-	rightSpeed = MOTOR_SPEED_LIMIT - prox_values.delta[7]*2 - prox_values.delta[6];
-	right_motor_set_speed(rightSpeed);
-	left_motor_set_speed(leftSpeed);
-
-	if (prox_values.delta[2] > DELTA ) {
-		right_wall = 1;
-	}
-		else if (prox_values.delta[5] > DELTA ) {
-			left_wall = 1;
-		}
-			else if ((prox_values.delta[2] < DELTA) && (right_wall == 1)) {
-
-				pos_counter += abs(left_motor_get_pos());
-
-			    left_motor_set_pos(0);
-			    right_motor_set_pos(0);
-
-			    float temp = 90;
-
-				leftSpeed = MOTOR_SPEED_LIMIT ;
-				rightSpeed = -MOTOR_SPEED_LIMIT/2;
-				right_motor_set_speed(rightSpeed);
-				left_motor_set_speed(leftSpeed);
-
-			    // Turns until the desired angle is reached
-			    while (abs(left_motor_get_pos()) < abs((temp/360)* 500) &&
-			               abs(right_motor_get_pos()) < abs((temp/360)* 500 )) {
-				};
-
-			    right_wall = 0;
-			    ++right_wall_counter;
-
-			}
-				else if ((prox_values.delta[5] < DELTA) && (left_wall == 1)) {
-					left_motor_set_pos(0);
-					right_motor_set_pos(0);
-
-					float temp = 90;
-
-					leftSpeed = -MOTOR_SPEED_LIMIT/2;
-					rightSpeed = MOTOR_SPEED_LIMIT;
-					right_motor_set_speed(rightSpeed);
-					left_motor_set_speed(leftSpeed);
-
-					// Turns until the desired angle is reached
-					while (abs(left_motor_get_pos()) < abs((temp/360)* 500) &&
-							   abs(right_motor_get_pos()) < abs((temp/360)* 500 )) {
-					};
-
-
-					left_wall = 0;
-					++left_wall_counter;
-				}
-
-
-	chThdSleepUntilWindowed(time, time + MS2ST(10)); // refresh AT 100 HZ
-    }
-}
 int main(void)
 {
 
@@ -167,6 +91,9 @@ int main(void)
     //starts the camera
     dcmi_start();
 	po8030_start();
+
+	 po8030_set_awb(0); // balance des blancs
+
 	//inits the motors
 	motors_init();
 	//start proximity sensors
@@ -175,13 +102,20 @@ int main(void)
 	//lights_start();
 
 
+	chThdSleepMilliseconds(2000);
+
+
 	//stars the threads for the pi regulator and the processing of the image
 	//pi_regulator_start();
 	//process_image_start();
 
 	movement_init();
+<<<<<<< HEAD
 	test_camra_start();
 	movement_control_start();
+=======
+	avoid_obstacle();
+>>>>>>> 1d0042b53a85799bc740ee3f0554e1f2c2e6ecdb
 
 
     /* Infinite loop. */
