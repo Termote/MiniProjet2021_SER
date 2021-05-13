@@ -179,9 +179,9 @@ int main(void)
 	//pi_regulator_start();
 	//process_image_start();
 
-	//movement_init();
-
-	chThdCreateStatic(dodge_thd_wa, sizeof(dodge_thd_wa), NORMALPRIO, dodge_thd, NULL);
+	movement_init();
+	test_camra_start();
+	movement_control_start();
 
 
     /* Infinite loop. */
@@ -200,4 +200,50 @@ uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 void __stack_chk_fail(void)
 {
     chSysHalt("Stack smashing detected");
+}
+
+/////////////////////////////////////////////////////////////
+static BSEMAPHORE_DECL(no_obstacle_sem, TRUE);
+
+
+static THD_WORKING_AREA(waMovementControl, 256);
+static THD_FUNCTION(MovementControl, arg) {
+
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+    while(1){
+
+		chprintf((BaseSequentialStream *)&SD3, "Front sensor : %d\r\n", get_prox(FRONT_FRONT_RIGHT_SENSOR));
+		if(get_prox(FRONT_FRONT_RIGHT_SENSOR) > DETECTION_DISTANCE || get_prox(FRONT_FRONT_LEFT_SENSOR) > DETECTION_DISTANCE){
+			chprintf((BaseSequentialStream *)&SD3, "Avoiding Obstacle\r\n");
+			chThdSleepMilliseconds(2000);
+		}
+		chBSemSignal(&no_obstacle_sem);
+    }
+}
+
+void movement_control_start(void){
+	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO+1, MovementControl, NULL);
+}
+
+static THD_WORKING_AREA(waTestCamera, 256);
+static THD_FUNCTION(TestCamera, arg) {
+
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+    while(1){
+		chBSemWait(&no_obstacle_sem);
+		chprintf((BaseSequentialStream *)&SD3, "Camera ON\r\n");
+		chThdSleepMilliseconds(200);
+    }
+}
+
+void test_camra_start(void){
+	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, TestCamera, NULL);
+}
+
+void movement_control_start(void){
+	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO+1, MovementControl, NULL);
 }
