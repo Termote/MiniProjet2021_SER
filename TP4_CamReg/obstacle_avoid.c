@@ -109,9 +109,7 @@ uint8_t status_on_diag(){                          //Returns TRUE if there is an
     	}
 }
 
-
 uint8_t status_on_front(){                          //Returns TRUE if there is an object detected on front
-
 
     if (get_prox(movement_info.front_sensor) > DETECTION_DISTANCE) {
     	return TRUE;
