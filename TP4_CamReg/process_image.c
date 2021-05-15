@@ -3,17 +3,12 @@
 #include <chprintf.h>
 #include <usbcfg.h>
 
-#include <main.h>
 #include <camera/po8030.h>
-
+#include "camera/dcmi_camera.h"
 #include <process_image.h>
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
-
-uint8_t avoiding_obstacle = FALSE;
-uint8_t target_reached = FALSE;
-uint8_t line_not_found = FALSE;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -25,10 +20,10 @@ static BSEMAPHORE_DECL(image_ready_sem, TRUE);
 uint16_t extract_line_width(uint8_t *buffer){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
-	uint8_t stop = FALSE, wrong_line = FALSE; 
+	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
 	uint32_t mean = 0;
 
-	static uint16_t last_width = PXTOCM/GOAL_DISTANCE;
+	static uint16_t last_width = 0;
 
 	//performs an average
 	for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE ; i++){
@@ -46,21 +41,21 @@ uint16_t extract_line_width(uint8_t *buffer){
 		    if(buffer[i] > mean && buffer[i+WIDTH_SLOPE] < mean)
 		    {
 		        begin = i;
-		        stop = TRUE;
+		        stop = 1;
 		    }
 		    i++;
 		}
 		//if a begin was found, search for an end
 		if (i < (IMAGE_BUFFER_SIZE - WIDTH_SLOPE) && begin)
 		{
-		    stop = FALSE;
+		    stop = 0;
 
 		    while(stop == 0 && i < IMAGE_BUFFER_SIZE)
 		    {
 		        if(buffer[i] > mean && buffer[i-WIDTH_SLOPE] < mean)
 		        {
 		            end = i;
-		            stop = TRUE;
+		            stop = 1;
 		        }
 		        i++;
 		    }
@@ -72,7 +67,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		}
 		else//if no begin was found
 		{
-		    line_not_found = TRUE;
+		    line_not_found = 1;
 		}
 
 		//if a line too small has been detected, continues the search
@@ -80,8 +75,8 @@ uint16_t extract_line_width(uint8_t *buffer){
 			i = end;
 			begin = 0;
 			end = 0;
-			stop = FALSE;
-			wrong_line = TRUE;
+			stop = 0;
+			wrong_line = 1;
 		}
 	}while(wrong_line);
 
@@ -89,15 +84,19 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
-	}else{
+	}
+	else {
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
 	}
 
 	//sets a maximum width or returns the measured width
 	if((PXTOCM/width) > MAX_DISTANCE){
+		line_not_found = 0;
 		return PXTOCM/MAX_DISTANCE;
-	}else{
+	}
+	else {
+		line_not_found =0;
 		return width;
 	}
 }
@@ -115,18 +114,14 @@ static THD_FUNCTION(CaptureImage, arg) {
 	dcmi_prepare();
 
     while(1){
-		if(get_avoiding_obstacle()) chThdSleepMilliseconds(20);						//MAGIC NUMBER !!!!!!!!!!!!!!!!
-		else{
-			//starts a capture
-			dcmi_capture_start();
-			//waits for the capture to be done
-			wait_image_ready();
-			//signals an image has been captured
-			chBSemSignal(&image_ready_sem);
-		}
+        //starts a capture
+		dcmi_capture_start();
+		//waits for the capture to be done
+		wait_image_ready();
+		//signals an image has been captured
+		chBSemSignal(&image_ready_sem);
     }
 }
-
 
 static THD_WORKING_AREA(waProcessImage, 1024);
 static THD_FUNCTION(ProcessImage, arg) {
@@ -137,6 +132,8 @@ static THD_FUNCTION(ProcessImage, arg) {
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
 	uint16_t lineWidth = 0;
+	uint8_t blue_values = 0;
+	uint8_t green_values = 0;
 
 	bool send_to_computer = true;
 
@@ -150,14 +147,14 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		for(uint16_t i = 0; i < (IMAGE_BUFFER_SIZE*2) ; i++){
 
-			green_values = (img_buff_ptr[i] & 0x07) << 3;
+			green_values = (img_buff_ptr[i] & 0x07) << 3;    // perform mask to only extract needed pixels
 			blue_values = (img_buff_ptr[i] & 0x00);
 
 			green_values = (green_values | ((img_buff_ptr[++i] & 0xE0) >> 5));
 			blue_values = (img_buff_ptr[i] & 0x1F );
 
 			image[i/2] = green_values + blue_values;
-		}
+					}
 
 		//search for a line in the image and gets its width in pixels
 		lineWidth = extract_line_width(image);
@@ -166,8 +163,9 @@ static THD_FUNCTION(ProcessImage, arg) {
 		if(lineWidth){
 			distance_cm = PXTOCM/lineWidth;
 		}
+		lineWidth =0;
 
-		if(send_to_computer){								//Je pense qu'on peut retirer cette fonction
+		if(send_to_computer){
 			//sends to the computer the image
 			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
@@ -176,35 +174,15 @@ static THD_FUNCTION(ProcessImage, arg) {
     }
 }
 
-float get_distance_cm(void){
+float get_distance_cm(void) {
 	return distance_cm;
 }
 
-uint16_t get_line_position(void){
+uint16_t get_line_position(void) {
 	return line_position;
 }
 
-void process_image_start(void){
+void process_image_start(void) {
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
 	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
-}
-
-void set_target_reached(uint8_t value){
-    target_reached = value;
-}
-
-uint8_t get_avoiding_obstacle (void){
-    return avoid_obstacle;
-}
-
-uint8_t get_target_reached (void){
-    return target_reached;
-}
-
-uint8_t get_line_not_found (void){
-    return line_not_found;
-}
-
-void set_avoiding_obstacle (uint8_t value){
-    avoid_obstacl = value;
 }
