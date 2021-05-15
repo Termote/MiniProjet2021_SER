@@ -1,6 +1,14 @@
 {
     "files.associations": {
         "usbcfg.h": "c",
-        "motors.h": "c"
+        "motors.h": "c",
+        "cstddef": "c",
+        "string": "c",
+        "optional": "c",
+        "limits": "c",
+        "memory": "c",
+        "new": "c",
+        "type_traits": "c",
+        "stdlib.h": "c"
     }
 }
