@@ -3,11 +3,9 @@
 #include <chprintf.h>
 #include <usbcfg.h>
 
-#include <main.h>
 #include <camera/po8030.h>
-
+#include "camera/dcmi_camera.h"
 #include <process_image.h>
-
 
 static float distance_cm = 0;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
@@ -25,7 +23,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
 	uint32_t mean = 0;
 
-	static uint16_t last_width = PXTOCM/GOAL_DISTANCE;
+	static uint16_t last_width = 0;
 
 	//performs an average
 	for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE ; i++){
@@ -86,15 +84,19 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
-	}else{
+	}
+	else {
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
 	}
 
 	//sets a maximum width or returns the measured width
 	if((PXTOCM/width) > MAX_DISTANCE){
+		line_not_found = 0;
 		return PXTOCM/MAX_DISTANCE;
-	}else{
+	}
+	else {
+		line_not_found =0;
 		return width;
 	}
 }
@@ -104,9 +106,6 @@ static THD_FUNCTION(CaptureImage, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
-
-
-
 
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
 	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
@@ -124,13 +123,11 @@ static THD_FUNCTION(CaptureImage, arg) {
     }
 }
 
-
 static THD_WORKING_AREA(waProcessImage, 1024);
 static THD_FUNCTION(ProcessImage, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
-
 
 	uint8_t *img_buff_ptr;
 	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
@@ -150,7 +147,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		for(uint16_t i = 0; i < (IMAGE_BUFFER_SIZE*2) ; i++){
 
-			green_values = (img_buff_ptr[i] & 0x07) << 3;
+			green_values = (img_buff_ptr[i] & 0x07) << 3;    // perform mask to only extract needed pixels
 			blue_values = (img_buff_ptr[i] & 0x00);
 
 			green_values = (green_values | ((img_buff_ptr[++i] & 0xE0) >> 5));
@@ -166,25 +163,26 @@ static THD_FUNCTION(ProcessImage, arg) {
 		if(lineWidth){
 			distance_cm = PXTOCM/lineWidth;
 		}
+		lineWidth =0;
 
 		if(send_to_computer){
 			//sends to the computer the image
-			SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
+			//SendUint8ToComputer(image, IMAGE_BUFFER_SIZE);
 		}
 		//invert the bool
 		send_to_computer = !send_to_computer;
     }
 }
 
-float get_distance_cm(void){
+float get_distance_cm(void) {
 	return distance_cm;
 }
 
-uint16_t get_line_position(void){
+uint16_t get_line_position(void) {
 	return line_position;
 }
 
-void process_image_start(void){
+void process_image_start(void) {
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
 	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
 }

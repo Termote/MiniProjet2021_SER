@@ -1,4 +1,4 @@
-#include <stdio.h>				// enlever les includes inutiles, jai copier coller tout les includes possibles de la librairie
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -8,51 +8,34 @@
 #include "hal.h"
 #include "shell.h"
 
-#include "aseba_vm/aseba_node.h"
-#include "aseba_vm/skel_user.h"
-#include "aseba_vm/aseba_can_interface.h"
-#include "aseba_vm/aseba_bridge.h"
 #include "audio/audio_thread.h"
 #include "audio/play_melody.h"
 #include "audio/play_sound_file.h"
-#include "audio/microphone.h"
 #include "camera/po8030.h"
-#include "epuck1x/Asercom.h"
-#include "epuck1x/Asercom2.h"
-#include "epuck1x/a_d/advance_ad_scan/e_acc.h"
-#include "sensors/battery_level.h"
-#include "sensors/imu.h"
-#include "sensors/mpu9250.h"
+//#include "sensors/battery_level.h"
 #include "sensors/proximity.h"
-#include "sensors/VL53L0X/VL53L0X.h"
-#include "cmd.h"
-#include "config_flash_storage.h"
+//#include "cmd.h"
+//#include "config_flash_storage.h"
 #include "exti.h"
-#include "i2c_bus.h"
-#include "ir_remote.h"
 #include "leds.h"
-#include <main.h>
+#include "main.h"
 #include "memory_protection.h"
 #include "motors.h"
-#include "sdio.h"
+//#include "sdio.h"
 #include "selector.h"
 #include "spi_comm.h"
 #include "usbcfg.h"
 #include "communication.h"
-#include "uc_usage.h"
 
-#include <movement_control.h>
+#include <obstacle_avoid.h>
 #include <pi_regulator.h>
 #include <process_image.h>
 #include <control_lights.h>
-
-#define DELTA 200		// a mettre dans le .h avec d'autres truc comme le 60 etc magic nb
+#include <movement_control.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
-
-
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size)
 {
@@ -60,7 +43,6 @@ void SendUint8ToComputer(uint8_t* data, uint16_t size)
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
 }
-
 
 static void serial_start(void)
 {
@@ -81,8 +63,8 @@ int main(void)
     chSysInit();
     mpu_init();
 
-    /** Inits the Inter Process Communication bus. */
-    	messagebus_init(&bus, &bus_lock, &bus_condvar);
+    /* Inits the Inter Process Communication bus. */
+    messagebus_init(&bus, &bus_lock, &bus_condvar);
 
     //starts the serial communication
     serial_start();
@@ -91,35 +73,27 @@ int main(void)
     //starts the camera
     dcmi_start();
 	po8030_start();
-
-	po8030_set_awb(0); // balance des blancs
-
+	// auto white balance disable
+	po8030_set_awb(0);
 	//inits the motors
 	motors_init();
 	//start proximity sensors
 	proximity_start();
-	// start light
-	//lights_start();
-
-
-	chThdSleepMilliseconds(2000);
-
-
-	//stars the threads for the pi regulator and the processing of the image
-	//pi_regulator_start();
-	//process_image_start();
-
+	// start lights
+	clear_leds();
+	spi_comm_start();
+	lights_start();
+	// start obstacle avoid + selector position
 	movement_init();
-    spi_comm_start();
-
-	//test_camra_start();
-	//movement_control_start();
-	avoid_obstacle();
+	chThdSleepMilliseconds(500);
+	// start movement control threads
+	movement_control_start();
+	//stars the threads for the pi regulator and the processing of the image
+	pi_regulator_start();
+	process_image_start();
 
     /* Infinite loop. */
     while (1) {
-
-    	chprintf((BaseSequentialStream *)&SD3, "infinity   \r\n");
 
 	//waits 1 second
 	chThdSleepMilliseconds(1000);
@@ -133,48 +107,3 @@ void __stack_chk_fail(void)
 {
     chSysHalt("Stack smashing detected");
 }
-
-/////////////////////////////////////////////////////////////
-/*
-static BSEMAPHORE_DECL(no_obstacle_sem, TRUE);
-
-
-static THD_WORKING_AREA(waMovementControl, 256);
-static THD_FUNCTION(MovementControl, arg) {
-
-    chRegSetThreadName(__FUNCTION__);
-    (void)arg;
-
-    while(1){
-
-		chprintf((BaseSequentialStream *)&SD3, "Front sensor : %d\r\n", get_prox(0));
-		if(get_prox(0) > 300 || get_prox(7) > 300){
-			chprintf((BaseSequentialStream *)&SD3, "Avoiding Obstacle\r\n");
-			chThdSleepMilliseconds(6000);
-		}
-		chBSemSignal(&no_obstacle_sem);
-    }
-}
-
-
-static THD_WORKING_AREA(waTestCamera, 256);
-static THD_FUNCTION(TestCamera, arg) {
-
-    chRegSetThreadName(__FUNCTION__);
-    (void)arg;
-
-    while(1){
-		chBSemWait(&no_obstacle_sem);
-		chprintf((BaseSequentialStream *)&SD3, "Camera ON\r\n");
-    }
-}
-
-void test_camra_start(void){
-	chThdCreateStatic(waTestCamera, sizeof(waTestCamera), NORMALPRIO, TestCamera, NULL);
-}
-
-void movement_control_start(void){
-	chThdCreateStatic(waMovementControl, sizeof(waMovementControl), NORMALPRIO+1, MovementControl, NULL);
-}
-
-*/
