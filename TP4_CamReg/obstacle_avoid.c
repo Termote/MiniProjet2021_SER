@@ -96,8 +96,8 @@ void update_orientation(void) {                          // Updates orientation 
 
 uint8_t status_on_diag(void) {                          //Returns TRUE if there is an object detected on diagonal
 
-    if (get_prox(movement_info.diag_sensor) > DETECTION_DISTANCE*10
-        || get_prox(movement_info.diag_sensor-movement_info.obstacle_avoiding_side) > DETECTION_DISTANCE*10) {
+    if (get_prox(movement_info.diag_sensor) > DETECTION_DISTANCE*CLOSE_COEFF
+        || get_prox(movement_info.diag_sensor-movement_info.obstacle_avoiding_side) > DETECTION_DISTANCE*CLOSE_COEFF) {
     	return TRUE;
     }
 	else {
@@ -117,7 +117,8 @@ uint8_t status_on_front(void){                          //Returns TRUE if there 
 
 uint8_t status_on_side(void) {                           //Returns TRUE if there is an object detected on object side
 
-    if ((get_prox(movement_info.side_sensor) > DETECTION_DISTANCE - ERROR_TOLERANCE) || (get_prox(movement_info.diag_sensor) > DETECTION_DISTANCE/3)) {
+    if ((get_prox(movement_info.side_sensor) > DETECTION_DISTANCE - ERROR_TOLERANCE) || 
+	(get_prox(movement_info.diag_sensor) > DETECTION_DISTANCE/FAR_COEFF)) {
     	return TRUE;
     }
 	else {
