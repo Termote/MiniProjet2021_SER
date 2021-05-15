@@ -19,6 +19,8 @@ typedef unsigned char   uint8_t;
 #define FRONT_LEFT_SENSOR           6       // Sensor number for left sensor at -45°
 #define RIGHT_SENSOR                2       // Sensor number for right sensor at 90°
 #define LEFT_SENSOR                 5       // Sensor number for left sensor at -90°
+#define CLOSE_COEFF					        10 		// correction coefficient to adjsut the desired precision on the proximity sensors
+#define FAR_COEFF					          3		// correction coefficient to adjsut the desired precision on the proximity sensors
 
 #define CONVERSION_CM_MM            10      // Decimal differrence between cm and mm
 #define STANDARD_TURN_ANGLE         110      // Standard turning angle
