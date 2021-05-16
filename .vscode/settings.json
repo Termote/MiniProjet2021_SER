@@ -9,6 +9,9 @@
         "memory": "c",
         "new": "c",
         "type_traits": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "hal.h": "c",
+        "ch.h": "c",
+        "stdio.h": "c"
     }
 }

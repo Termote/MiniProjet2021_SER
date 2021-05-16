@@ -1,16 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-
-#include "ch.h"
-#include "chprintf.h"
-#include "hal.h"
-
 #include "sdio.h"
-#include "audio/audio_thread.h"
-#include "audio/play_melody.h"
-#include "audio/play_sound_file.h"
 #include "camera/po8030.h"
 #include "sensors/proximity.h"
 #include "leds.h"
@@ -20,9 +9,6 @@
 #include "selector.h"
 #include "spi_comm.h"
 #include "usbcfg.h"
-#include "communication.h"
-#include "audio/microphone.h"
-
 
 #include <obstacle_avoid.h>
 #include <pi_regulator.h>
@@ -34,13 +20,7 @@ messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
-void SendUint8ToComputer(uint8_t* data, uint16_t size)
-{
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
-}
-
+//starts serial communication
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -55,7 +35,6 @@ static void serial_start(void)
 
 int main(void)
 {
-
     halInit();
     chSysInit();
     mpu_init();
@@ -69,6 +48,7 @@ int main(void)
     usb_start();
     //starts the camera
     dcmi_start();
+	//initialises clock generation
 	po8030_start();
 	// auto white balance disable
 	po8030_set_awb(0);
@@ -77,13 +57,19 @@ int main(void)
 	//start proximity sensors
 	proximity_start();
 	// start lights
-	clear_leds();
 	spi_comm_start();
+	clear_leds();
+	// start light threads : LightsSirens and LightsCircle
 	lights_start();
 	// start obstacle avoid + selector position
 	movement_init();
+
+	/* Waits untill the e-puck has started the initial turn 
+	and that the movement_init had tine to initialise
+	*/
 	chThdSleepMilliseconds(500);
-	// start movement control threads
+
+	// start movement control thread 
 	movement_control_start();
 	//stars the threads for the pi regulator and the processing of the image
 	pi_regulator_start();
@@ -91,12 +77,12 @@ int main(void)
 
     /* Infinite loop. */
     while (1) {
-
-	//waits 1 second
-	chThdSleepMilliseconds(1000);
+	//puts main to sleep for 100 milisecond
+	chThdSleepMilliseconds(100);
     }
 }
 
+/* memory safety measure */
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 

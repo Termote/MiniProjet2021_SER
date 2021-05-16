@@ -1,11 +1,5 @@
-#include "ch.h"
-#include "hal.h"
 #include <math.h>
-#include <usbcfg.h>
-#include <chprintf.h>
-
-
-#include <main.h>
+#include <stdio.h>
 #include <motors.h>
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -35,7 +29,6 @@ int16_t pi_regulator(float distance, float goal){
 	}else if(sum_error < -MAX_SUM_ERROR){
 		sum_error = -MAX_SUM_ERROR;
 	}
-
 	speed = KP * error + KI * sum_error;
 
     return (int16_t)speed;

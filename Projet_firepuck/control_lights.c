@@ -1,25 +1,14 @@
-#include "ch.h"
-#include "hal.h"
-#include <chprintf.h>
-#include <usbcfg.h>
-
-#include <main.h>
 #include <leds.h>
-#include "audio/audio_thread.h"
-#include "audio/play_melody.h"
-#include "audio/play_sound_file.h"
 #include <control_lights.h>
 
-
-static BSEMAPHORE_DECL(goal_reached_sem, TRUE);			// semaphore to signal when the robot is correctly arrived
+/**************************** SEMAPHORES *************************************/
+static BSEMAPHORE_DECL(goal_reached_sem, TRUE);			// semaphore to signal when the robot has correctly arrived to destination
 static BSEMAPHORE_DECL(sirens_on_sem, FALSE);			// semaphore for light blinking when traveling to goal
 
-uint8_t goal_reached = FALSE;
+/************************** STATIC VARIABLES *********************************/
+static uint8_t goal_reached = FALSE;
 
-void start_light_choreography(void){
-    goal_reached = TRUE;
-    chBSemSignal(&goal_reached_sem);
-}
+/******************************* THREADS *************************************/
 
 /* Thread for light blinking when advancing */
 
@@ -33,6 +22,7 @@ static THD_FUNCTION(LightsSirens, arg) {
 
         chBSemWait(&sirens_on_sem);
 
+        //LED5 is not set, so we can see if there is a Kernel error
         set_led(LED1, LED_INTENSITY);
         set_led(LED3, LED_INTENSITY);
         set_led(LED7, LED_INTENSITY);
@@ -40,6 +30,7 @@ static THD_FUNCTION(LightsSirens, arg) {
         toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
 
         while (goal_reached == FALSE) {
+
             chThdSleepMilliseconds(LIGHT_FLICKER_TIME);
             toggle_rgb_led(LED2, BLUE_LED ,LED_INTENSITY);
             toggle_rgb_led(LED8, BLUE_LED ,LED_INTENSITY);
@@ -83,10 +74,24 @@ static THD_FUNCTION(LightsCircling, arg) {
     }
 }
 
-/* Fonction initializing threads for lights control */
+/***************************** END THREADS ***********************************/
+/************************* PUBLIC FUNCTIONS **********************************/
 
+/* Fonction initializing threads for lights control */
 void lights_start(void) {
+
     clear_leds();
+
+    /*Has a high priority because the threads are often asleep and at a lower priority 
+    they will be interupted by another thread and not be as coordinated as need be*/
     chThdCreateStatic(waLightsSirens, sizeof(waLightsSirens), HIGHPRIO, LightsSirens, NULL);
 	chThdCreateStatic(waLightsCircling, sizeof(waLightsCircling), HIGHPRIO, LightsCircling, NULL);
 }
+
+void start_light_choreography(void){
+
+    goal_reached = TRUE;
+    chBSemSignal(&goal_reached_sem);
+}
+
+/************************ END PUBLIC FUNCTIONS *********************************/

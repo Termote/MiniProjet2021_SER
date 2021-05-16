@@ -1,8 +1,5 @@
-#ifndef OBSTACLE_AVOID
-#define OBSTACLE_AVOID
-
-typedef unsigned char   uint8_t;
-
+#ifndef OBSTACLE_AVOID_H
+#define OBSTACLE_AVOID_H
 
 #define NSTEP_ONE_TURN              1000    // number of step for 1 turn of the motor
 #define CORRECTION_FACTOR           1.05    // correct the angle of rotation to be more precise
@@ -34,11 +31,7 @@ typedef unsigned char   uint8_t;
 #define DETECTION_DISTANCE          300    // Desired sensor distance detection, in delta
 #define ERROR_TOLERANCE             150      // Distance error range,  in delta
 
-
 void movement_init(void);
-uint8_t object_detection(void);
 void avoid_obstacle(void);
-void go_forward(void);
-uint8_t status_on_front(void);
 
-#endif
+#endif /* OBSTACLE_AVOID_H */
