@@ -6,26 +6,23 @@
 #include "ch.h"
 #include "chprintf.h"
 #include "hal.h"
-#include "shell.h"
 
+#include "sdio.h"
 #include "audio/audio_thread.h"
 #include "audio/play_melody.h"
 #include "audio/play_sound_file.h"
 #include "camera/po8030.h"
-//#include "sensors/battery_level.h"
 #include "sensors/proximity.h"
-//#include "cmd.h"
-//#include "config_flash_storage.h"
-#include "exti.h"
 #include "leds.h"
 #include "main.h"
 #include "memory_protection.h"
 #include "motors.h"
-//#include "sdio.h"
 #include "selector.h"
 #include "spi_comm.h"
 #include "usbcfg.h"
 #include "communication.h"
+#include "audio/microphone.h"
+
 
 #include <obstacle_avoid.h>
 #include <pi_regulator.h>
