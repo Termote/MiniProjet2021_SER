@@ -95,25 +95,6 @@ uint16_t extract_line_width(uint8_t *buffer){
 	}
 }
 /********************** END INTERNAL FUNCTIONS *******************************/
-/************************* PUBLIC FUNCTIONS **********************************/
-
-float get_distance_cm(void) {
-
-	return distance_cm;
-}
-
-uint16_t get_line_position(void) {
-
-	return line_position;
-}
-
-void process_image_start(void) {
-
-	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
-	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
-}
-
-/*********************** END PUBLIC FUNCTIONS ********************************/
 /****************************** THREADS **************************************/
 
 static THD_WORKING_AREA(waCaptureImage, 256);
@@ -183,3 +164,22 @@ static THD_FUNCTION(ProcessImage, arg) {
 }
 
 /**************************** END THREADS *************************************/
+/************************* PUBLIC FUNCTIONS **********************************/
+
+float get_distance_cm(void) {
+
+	return distance_cm;
+}
+
+uint16_t get_line_position(void) {
+
+	return line_position;
+}
+
+void process_image_start(void) {
+
+	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
+	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
+}
+
+/*********************** END PUBLIC FUNCTIONS ********************************/

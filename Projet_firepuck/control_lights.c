@@ -8,26 +8,6 @@ static BSEMAPHORE_DECL(sirens_on_sem, FALSE);			// semaphore for light blinking 
 /************************** STATIC VARIABLES *********************************/
 static uint8_t goal_reached = FALSE;
 
-/************************* PUBLIC FUNCTIONS **********************************/
-
-/* Fonction initializing threads for lights control */
-void lights_start(void) {
-
-    clear_leds();
-
-    /*Has a high priority because the threads are often asleep and at a lower priority 
-    they will be interupted by another thread and not be as coordinated as need be*/
-    chThdCreateStatic(waLightsSirens, sizeof(waLightsSirens), HIGHPRIO, LightsSirens, NULL);
-	chThdCreateStatic(waLightsCircling, sizeof(waLightsCircling), HIGHPRIO, LightsCircling, NULL);
-}
-
-void start_light_choreography(void){
-
-    goal_reached = TRUE;
-    chBSemSignal(&goal_reached_sem);
-}
-
-/************************ END PUBLIC FUNCTIONS *********************************/
 /******************************* THREADS *************************************/
 
 /* Thread for light blinking when advancing */
@@ -95,3 +75,23 @@ static THD_FUNCTION(LightsCircling, arg) {
 }
 
 /***************************** END THREADS ***********************************/
+/************************* PUBLIC FUNCTIONS **********************************/
+
+/* Fonction initializing threads for lights control */
+void lights_start(void) {
+
+    clear_leds();
+
+    /*Has a high priority because the threads are often asleep and at a lower priority 
+    they will be interupted by another thread and not be as coordinated as need be*/
+    chThdCreateStatic(waLightsSirens, sizeof(waLightsSirens), HIGHPRIO, LightsSirens, NULL);
+	chThdCreateStatic(waLightsCircling, sizeof(waLightsCircling), HIGHPRIO, LightsCircling, NULL);
+}
+
+void start_light_choreography(void){
+
+    goal_reached = TRUE;
+    chBSemSignal(&goal_reached_sem);
+}
+
+/************************ END PUBLIC FUNCTIONS *********************************/

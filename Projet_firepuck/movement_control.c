@@ -25,19 +25,6 @@ uint8_t obstacle_on_front(void){
     return FALSE;
 }
 /********************** END INTERNAL FUNCTIONS *******************************/
-/************************* PUBLIC FUNCTIONS **********************************/
-
-void pi_regulator_start(void){
-
-	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
-}
-
-void movement_control_start(void){
-
-    //has a higher priority compared to the ProcessImage thread to avoid hitting an obstacle, wich is more important
-	chThdCreateStatic(waMovementControl, sizeof(waMovementControl), NORMALPRIO+1, MovementControl, NULL);
-}
-/*********************** END PUBLIC FUNCTIONS ********************************/
 /******************************* THREADS *************************************/
 
 static THD_WORKING_AREA(waMovementControl, 128);
@@ -112,3 +99,16 @@ static THD_FUNCTION(PiRegulator, arg) {
 }
 
 /***************************** END THREADS ***********************************/
+/************************* PUBLIC FUNCTIONS **********************************/
+
+void pi_regulator_start(void){
+
+	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
+}
+
+void movement_control_start(void){
+
+    //has a higher priority compared to the ProcessImage thread to avoid hitting an obstacle, wich is more important
+	chThdCreateStatic(waMovementControl, sizeof(waMovementControl), NORMALPRIO+1, MovementControl, NULL);
+}
+/*********************** END PUBLIC FUNCTIONS ********************************/
