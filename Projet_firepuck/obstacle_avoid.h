@@ -20,7 +20,7 @@
 #define FAR_COEFF					3		// correction coefficient to adjust the desired precision on the proximity sensors
 
 #define CONVERSION_CM_MM            10      // Decimal difference between cm and mm
-#define STANDARD_TURN_ANGLE         112     // Standard turning angle with a correction coefficient found experimentally
+#define STANDARD_TURN_ANGLE         112     // Standard turning angle with a correction coefficient found experimentally (90 +360/16)
 
 #define CLOSER                      -1      // Multiplier used for distance calculation when getting closer to the objective
 #define FURTHER                     1       // Multiplier used for distance calculation when getting closer to the objective
