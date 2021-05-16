@@ -117,8 +117,13 @@ uint8_t status_on_front(void){                          //Returns TRUE if there 
 
 uint8_t status_on_side(void) {                           //Returns TRUE if there is an object detected on object side
 
+<<<<<<< HEAD
     if ((get_prox(movement_info.side_sensor) > DETECTION_DISTANCE - ERROR_TOLERANCE) ||
     		(get_prox(movement_info.diag_sensor) > DETECTION_DISTANCE/FAR_COEFF)) {
+=======
+    if ((get_prox(movement_info.side_sensor) > DETECTION_DISTANCE - ERROR_TOLERANCE) || 
+	(get_prox(movement_info.diag_sensor) > DETECTION_DISTANCE/FAR_COEFF)) {
+>>>>>>> branch 'main' of https://github.com/MindTheGapM8/MiniProjet2021_SER.git
     	return TRUE;
     }
 	else {

@@ -10,3 +10,7 @@ void start_light_choreography(void);
 void lights_start(void);
 
 #endif /* CONTROL_LIGHTS_H */
+<<<<<<< HEAD
+=======
+
+>>>>>>> branch 'main' of https://github.com/MindTheGapM8/MiniProjet2021_SER.git

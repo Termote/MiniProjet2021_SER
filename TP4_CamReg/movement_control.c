@@ -105,4 +105,7 @@ static THD_FUNCTION(PiRegulator, arg) {
 void pi_regulator_start(void){
 	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
 }
+<<<<<<< HEAD
 
+=======
+>>>>>>> branch 'main' of https://github.com/MindTheGapM8/MiniProjet2021_SER.git
