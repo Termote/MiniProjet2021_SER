@@ -9,75 +9,6 @@ static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle of image
 /**************************** SEMAPHORES *************************************/
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
 
-/****************************** THREADS **************************************/
-
-static THD_WORKING_AREA(waCaptureImage, 256);
-static THD_FUNCTION(CaptureImage, arg) {
-
-    chRegSetThreadName(__FUNCTION__);
-    (void)arg;
-
-	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines)
-	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
-	dcmi_enable_double_buffering();
-	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
-	dcmi_prepare();
-
-    while(1){
-
-        //starts a capture
-		dcmi_capture_start();
-		//waits for the capture to be done
-		wait_image_ready();
-		//signals an image has been captured
-		chBSemSignal(&image_ready_sem);
-    }
-}
-
-static THD_WORKING_AREA(waProcessImage, 1024);
-static THD_FUNCTION(ProcessImage, arg) {
-
-    chRegSetThreadName(__FUNCTION__);
-    (void)arg;
-
-	uint8_t *img_buff_ptr;
-	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
-	uint16_t lineWidth = 0;
-	uint8_t blue_values = 0;
-	uint8_t green_values = 0;
-
-    while(1){
-
-    	//waits until an image has been captured
-        chBSemWait(&image_ready_sem);
-		//gets the pointer to the array filled with the last image in RGB565    
-		img_buff_ptr = dcmi_get_last_image_ptr();
-
-		// extract blue and green
-
-		for(uint16_t i = 0; i < (IMAGE_BUFFER_SIZE*2) ; i++){
-
-			green_values = (img_buff_ptr[i] & 0x07) << 3;    // perform mask to only extract needed pixels
-			blue_values = (img_buff_ptr[i] & 0x00);
-
-			green_values = (green_values | ((img_buff_ptr[++i] & 0xE0) >> 5));
-			blue_values = (img_buff_ptr[i] & 0x1F );
-
-			image[i/2] = green_values + blue_values;
-		}
-
-		//search for a line in the image and gets its width in pixels
-		lineWidth = extract_line_width(image);
-
-		//converts the width into a distance between the robot and the camera
-		if(lineWidth){
-			distance_cm = PXTOCM/lineWidth;
-		}
-		lineWidth = 0;
-    }
-}
-
-/**************************** END THREADS *************************************/
 /************************ INTERNAL FUNCTIONS *********************************/
 
 /*
@@ -183,3 +114,72 @@ void process_image_start(void) {
 }
 
 /*********************** END PUBLIC FUNCTIONS ********************************/
+/****************************** THREADS **************************************/
+
+static THD_WORKING_AREA(waCaptureImage, 256);
+static THD_FUNCTION(CaptureImage, arg) {
+
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines)
+	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
+	dcmi_enable_double_buffering();
+	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
+	dcmi_prepare();
+
+    while(1){
+
+        //starts a capture
+		dcmi_capture_start();
+		//waits for the capture to be done
+		wait_image_ready();
+		//signals an image has been captured
+		chBSemSignal(&image_ready_sem);
+    }
+}
+
+static THD_WORKING_AREA(waProcessImage, 1024);
+static THD_FUNCTION(ProcessImage, arg) {
+
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+	uint8_t *img_buff_ptr;
+	uint8_t image[IMAGE_BUFFER_SIZE] = {0};
+	uint16_t lineWidth = 0;
+	uint8_t blue_values = 0;
+	uint8_t green_values = 0;
+
+    while(1){
+
+    	//waits until an image has been captured
+        chBSemWait(&image_ready_sem);
+		//gets the pointer to the array filled with the last image in RGB565    
+		img_buff_ptr = dcmi_get_last_image_ptr();
+
+		// extract blue and green
+
+		for(uint16_t i = 0; i < (IMAGE_BUFFER_SIZE*2) ; i++){
+
+			green_values = (img_buff_ptr[i] & 0x07) << 3;    // perform mask to only extract needed pixels
+			blue_values = (img_buff_ptr[i] & 0x00);
+
+			green_values = (green_values | ((img_buff_ptr[++i] & 0xE0) >> 5));
+			blue_values = (img_buff_ptr[i] & 0x1F );
+
+			image[i/2] = green_values + blue_values;
+		}
+
+		//search for a line in the image and gets its width in pixels
+		lineWidth = extract_line_width(image);
+
+		//converts the width into a distance between the robot and the camera
+		if(lineWidth){
+			distance_cm = PXTOCM/lineWidth;
+		}
+		lineWidth = 0;
+    }
+}
+
+/**************************** END THREADS *************************************/

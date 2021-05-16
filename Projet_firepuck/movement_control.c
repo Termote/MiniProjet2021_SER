@@ -12,6 +12,32 @@
 static BSEMAPHORE_DECL(no_obstacle_sem, TRUE);
 static BSEMAPHORE_DECL(goal_not_reached_sem, FALSE); //FALSE so MovementControl can start first
 
+/************************ INTERNAL FUNCTIONS *********************************/
+
+uint8_t obstacle_on_front(void){
+
+    if(get_prox(FRONT_FRONT_RIGHT_SENSOR) > DETECTION_DISTANCE
+    || get_prox(FRONT_FRONT_LEFT_SENSOR) > DETECTION_DISTANCE
+    || get_prox(FRONT_LEFT_SENSOR) > DETECTION_DISTANCE
+    || get_prox(FRONT_LEFT_SENSOR) > DETECTION_DISTANCE){
+		return TRUE;
+	}
+    return FALSE;
+}
+/********************** END INTERNAL FUNCTIONS *******************************/
+/************************* PUBLIC FUNCTIONS **********************************/
+
+void pi_regulator_start(void){
+
+	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
+}
+
+void movement_control_start(void){
+
+    //has a higher priority compared to the ProcessImage thread to avoid hitting an obstacle, wich is more important
+	chThdCreateStatic(waMovementControl, sizeof(waMovementControl), NORMALPRIO+1, MovementControl, NULL);
+}
+/*********************** END PUBLIC FUNCTIONS ********************************/
 /******************************* THREADS *************************************/
 
 static THD_WORKING_AREA(waMovementControl, 128);
@@ -86,29 +112,3 @@ static THD_FUNCTION(PiRegulator, arg) {
 }
 
 /***************************** END THREADS ***********************************/
-/************************ INTERNAL FUNCTIONS *********************************/
-
-uint8_t obstacle_on_front(void){
-
-    if(get_prox(FRONT_FRONT_RIGHT_SENSOR) > DETECTION_DISTANCE
-    || get_prox(FRONT_FRONT_LEFT_SENSOR) > DETECTION_DISTANCE
-    || get_prox(FRONT_LEFT_SENSOR) > DETECTION_DISTANCE
-    || get_prox(FRONT_LEFT_SENSOR) > DETECTION_DISTANCE){
-		return TRUE;
-	}
-    return FALSE;
-}
-/********************** END INTERNAL FUNCTIONS *******************************/
-/************************* PUBLIC FUNCTIONS **********************************/
-
-void pi_regulator_start(void){
-
-	chThdCreateStatic(waPiRegulator, sizeof(waPiRegulator), NORMALPRIO, PiRegulator, NULL);
-}
-
-void movement_control_start(void){
-
-    //has a higher priority compared to the ProcessImage thread to avoid hitting an obstacle, wich is more important
-	chThdCreateStatic(waMovementControl, sizeof(waMovementControl), NORMALPRIO+1, MovementControl, NULL);
-}
-/*********************** END PUBLIC FUNCTIONS ********************************/
